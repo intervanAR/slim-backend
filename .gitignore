@@ -1,0 +1,5 @@
+/instalacion/logs/*.log
+/instalacion/backend.conf
+/instalacion/settings.php
+/vendor
+/composer.lock

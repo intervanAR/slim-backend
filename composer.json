@@ -1,0 +1,18 @@
+{
+    "require": {
+        "slim/slim": "3.*",
+        "monolog/monolog": "^1.25",
+        "catfan/medoo": "^1.7",
+        "tuupola/slim-basic-auth": "^3.2",
+        "zircote/swagger-php": "3.0",
+        "tuupola/slim-jwt-auth": "^3.4",
+        "kreait/firebase-tokens": "^1.10",
+        "kodus/file-cache": "^1.1"
+    },
+    "autoload": {
+    "psr-4": {
+        "Backend\\": "src/"
+    	}
+	}
+
+}
