@@ -35,12 +35,13 @@ $authentication["error"] = function ($response, $arguments) {
         return $response->withBody($body);
 };
 
-//$app -> add(new Tuupola\Middleware\HttpBasicAuthentication($authentication));
+$app -> add(new Tuupola\Middleware\HttpBasicAuthentication($authentication));
 
+/*
 $projectId = 'dinahuapi-intervan';
 $pool = new Kodus\Cache\FileCache(__DIR__.'/cache', 3600 );  
 $verifier = IdTokenVerifier::createWithProjectIdAndCache($projectId,$pool);
 
 $app -> add(new \Backend\Controllers\JwtFirebaseAuthentication($authentication,$verifier));
-
+*/
 $app->run();
