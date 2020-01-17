@@ -18,30 +18,59 @@ require '../src/rest/routes.php';
 
 
 /* Authentication */
-$authentication = $settings["settings"]["authentication"];
+if( isset($settings["settings"]["authentication"])){
 
-$authentication["before"] = function ($request, $arguments) {
-        return $request->withAttribute("user", $arguments["user"]);
-};
+	// Recorrer los mencanismos de authenticación
+	$auths = $settings["settings"]["authentication"];
+	foreach ($auths as $key => $auth) {
+		# code...
+		switch ($key) {
+		 	case 'basic':
+		 		# code...
+					$auth["before"] = function ($request, $arguments) {
+        						return $request->withAttribute("user", $arguments["user"]);
+						};
+					$auth["error"] = function ($response, $arguments) {
+						        $data = [];
+						        $data["status"] = "error";
+						        $data["message"] = $arguments["message"];
 
-$authentication["error"] = function ($response, $arguments) {
-        $data = [];
-        $data["status"] = "error";
-        $data["message"] = $arguments["message"];
+						        $body = $response->getBody();
+						        $body->write(json_encode($data, JSON_UNESCAPED_SLASHES));
 
-        $body = $response->getBody();
-        $body->write(json_encode($data, JSON_UNESCAPED_SLASHES));
+						        return $response->withBody($body);
+						};
+					$app -> add(new Tuupola\Middleware\HttpBasicAuthentication($auth));
+		 		break;
+		 	case 'firebase':
+		 		# code...
+					$auth["before"] = function ($request, $arguments) {
+        						return $request->withAttribute("user", $arguments["user"]);
+						};
+					$auth["error"] = function ($response, $arguments) {
+						        $data = [];
+						        $data["status"] = "error";
+						        $data["message"] = $arguments["message"];
 
-        return $response->withBody($body);
-};
+						        $body = $response->getBody();
+						        $body->write(json_encode($data, JSON_UNESCAPED_SLASHES));
 
-$app -> add(new Tuupola\Middleware\HttpBasicAuthentication($authentication));
+						        return $response->withBody($body);
+						};
+					$pool = new Kodus\Cache\FileCache($auth["keyCache"] , $auth["timeoutCache"] );  
+					$verifier = IdTokenVerifier::createWithProjectIdAndCache($auth["projectId"],$pool);
+					$app -> add(new \Backend\Controllers\JwtFirebaseAuthentication($auth,$verifier));
+		 		break;
 
-/*
-$projectId = 'dinahuapi-intervan';
-$pool = new Kodus\Cache\FileCache(__DIR__.'/cache', 3600 );  
-$verifier = IdTokenVerifier::createWithProjectIdAndCache($projectId,$pool);
+		 	default:
+		 		# code...
+		 		break;
+		 } 
+	}
 
-$app -> add(new \Backend\Controllers\JwtFirebaseAuthentication($authentication,$verifier));
-*/
+
+}
+
+
+// Lanzar servidor
 $app->run();
