@@ -4,19 +4,19 @@ Maqueta de Backend para usar la Oficina Virtual. Este backend es llamado por el 
 ## Características
 Instala una maqueta con un servidor completo de requerimientos del midleware de Oficina Virtual. Tiene el código para conectarse a los siguientes sistemas
 
-Gestionar : Sistemas de Ingresos y Gastos desarrollado por Intervan
-Creditos  : Sistenemas de Gestión de Créditos desarrollado por Intervan
-Aguas     : SIstemas de Gestión de Créditos desarrollado por Intervan
-Demo      : Esquema de tablas simple de ejemplo de desarrollo de esta maqueta
+* Gestionar : Sistemas de Ingresos y Gastos desarrollado por Intervan
+* Creditos  : Sistenemas de Gestión de Créditos desarrollado por Intervan
+* Aguas     : SIstemas de Gestión de Créditos desarrollado por Intervan
+* Demo      : Esquema de tablas simple de ejemplo de desarrollo de esta maqueta
 
 El objetivo de la maqueta es independizar y abstraer los accesos de la Oficina Virtual al sistema subyacente  de manera que en en ésta, se puedan establecer reglas de negocio propias de cada instalación.
 
 ## Requerimientos
-PHP 7 o superior 
-composer
-MySQL si desea instalar el esquema Demo
-Apache 
-Swagger para ver documentación de servicios
+* PHP 7 o superior 
+* composer
+* MySQL si desea instalar el esquema Demo
+* Apache 
+* Swagger para ver documentación de servicios
 
 ## Instalación
 ```bash
@@ -135,8 +135,113 @@ Si quiere poder consultar deuda, actualizar la deuda e imprimir un reporte de de
 Si quiere agregar pagos, deberá también implementar `crear_operacion_pago($comprobantes)`,
 `anular_operacion_pago($id_operacion )`.
     
+Para acceder a los datos, utiliza el framework *[Medoo][1]*. Aunque es posible reemplazarlo por otro ORM.
 
 
-### Modificar Configuración.
+Los modelos se representan en directorios dentro de la carpeta src/Modelos/*nuevo_sistema*/, heredando de la clase src/Modelos/ModeloBase.php e implementando el método source
 
+Ejemplo: modelo para acceder a la tabla FACTURAS
+```php 
+class Facturas extends \Backend\Modelos\ModeloBase
+{
+	public function getSource(){
+		return 'FACTURAS_CLIENTE';
+	}
+} 
+```
+
+Para acceder al conteiner donde tendremos los objetos entre otros, la base y el logger, podemos accederlo a traves de la clase SlimBackend::Backend().
+
+Por ejemplo en un conector si queremos acceder a una clase que representa el modelo para hacer una consulta o tener acceso al logger, lo hacemos de la siguiente manera
+
+```php
+    public function consulta_deuda($parametros){
+        
+        ...
+
+        $consulta = new \Backend\Modelos\Erp\Facturas(SlimBackend::Backend());
+
+        $join = ["[><]CLIENTES"=>["ID_EMPRESA"=>"ID_EMPRESA",
+                                  "NRO_SUCURSAL"=>"NRO_SUCURSAL",
+                                  "NRO_LEGAJO"=>"NRO_LEGAJO"],
+                "[><]PERSONAS"=>["CLIENTES.CUIT"=>"CUIT"]
+            ];
+
+        $campos = ["CLIENTES.CUIT(cont_id)",
+                   "FACTURAS_CLIENTE.ID_EMPRESA",
+                   "FACTURAS_CLIENTE.NRO_SUCURSAL",
+                   "FACTURAS_CLIENTE.ID_FACTURA",
+                   "CLIENTES.CUIT",
+                   "CLIENTES.NRO_CUENTA",
+                   "FACTURAS_CLIENTE.SALDO_IMPAGO(deu_capital)",
+                   "PERSONAS.NOMBRE(cont_desc1)",
+                   "PERSONAS.NOMBRE",
+                   "FACTURAS_CLIENTE.FECHA_GENERACION(deu_vto)",
+                   "FACTURAS_CLIENTE.TIPO_FACTURA",
+                   "FACTURAS_CLIENTE.NRO_FACTURA"];
+
+        $condicion["FACTURAS_CLIENTE.ESTADO"]=["CON","PAR"];
+        $condicion["CLIENTES.CUIT"]=$nro_cuit;
+        $condicion["ORDER"]=["PERSONAS.NOMBRE"=>"ASC",
+                             "CLIENTES.NRO_CUENTA"=>"ASC",
+                             "FACTURAS_CLIENTE.ID_FACTURA"=>"ASC",
+                             "FACTURAS_CLIENTE.FECHA_VENCIMIENTO"=>"DESC"];
+
+    	$datos = $consulta->selectj($join,$campos,$condicion);
+    
+    	// Acceso al logger.
+        $consulta->logger->debug('backend_erp:consulta_deuda'.print_r($consulta->db->log(),true));
+
+        ...
+    
+```
+
+
+[1]: https://medoo.in/
+
+### Modificar Container
+
+Agregar en el archivo src\dependencies.php la construcción del nuevo conector de backend NUEVO_BACKEND:
+
+```php
+	$container['sistema'] = function ($c){
+		$setting = $c->get('settings')['sistema'];
+        if ($setting === 'gestionar') {
+            $backend = new \Backend\Conectores\backend_gestionar();
+		} elseif ($setting === 'aguas') {
+            $backend = new \Backend\Conectores\backend_aguas();
+        } elseif ($setting === 'creditos') {
+            $backend = new \Backend\Conectores\backend_creditos();
+        } elseif ($setting === 'erp') {
+            $backend = new \Backend\Conectores\backend_erp();
+        } elseif ($setting === 'NUEVO_BACKEND') {
+            $backend = new \Backend\Conectores\CLASE_NUEVO_BACKEND();
+        } else {
+            throw new Exception("El parámatro sistema=$sistema definido en instalacion/settings:.php es incorrecto");
+		}
+		return $backend;
+	};	
+```
+
+### Modificar Configuración
+En el archivo instalacion\settings.php establecer en la sección sistema el nombre NUEVO_BACKEND
+
+```php
+				'authentication' =>["basic" =>[ 
+										"path"=>["/test","/api_docs","/*"],
+										"ignore"=>["/test"],
+										"realm"=>"BackendRealm",
+										"secure" => false,
+										"users" => [
+												"usuario" =>"password",
+											]											
+										] /* ,
+									"firebase" =>[ 
+										"path"=>"/servicios",
+										"projectId"=>"dinahuapi-intervan",
+										"keyCache"=>__DIR__.'/cache',
+										"timeoutCache"=>3600,					
+										]*/ ],
+				"sistema" => "NUEVO_BACKEND"
+```
 
