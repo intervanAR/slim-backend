@@ -15,7 +15,7 @@ class SlimBackend
     }
 
 
-    public static function backend(){
+    public static function Backend(){
         return self::$App->getcontainer();
     }
   

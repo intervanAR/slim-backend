@@ -118,6 +118,81 @@ class backend_gestionar implements backend_servicio
 	}
 
 	public function resumen_pago($id_comprobantes, $fecha_actualizacion){
+		try{
+			$mensaje_error="Error generar_facturas_x_id_comprobantes";
+			toba::db()->abrir_transaccion();
+			foreach ($id_comprobantes as $key => $value) {
+				$sql= "INSERT INTO RE_TMP_DEUDAS_WEB
+						(id_comprobante)
+						VALUES (".$value['id'].");";
+
+				dao_varios::ejecutar_sql($sql, false);
+			}
+
+			$sql = "SELECT concat_all( 'select a.id_comprobante FROM re_tmp_deudas_web a, re_facturas b WHERE a.id_comprobante = b.id_comprobante AND b.fecha_2vto>=trunc(sysdate)','#') facturas from dual";
+
+			$fila= toba::db()->consultar_fila($sql);
+
+			if( isset($fila["facturas"]) ){
+				$rta ="OK";
+				$comprobantesFact = "#".$fila["facturas"]."#";
+
+			}else{  
+				$sql= "BEGIN :resultado:= pkg_facturas.generar_facturas_x_ids(to_date(:fecha_actualizacion, 'yyyy-mm-dd'), :comprobantesFact); END;";
+
+				$parametros = array (array(  'nombre' => 'fecha_actualizacion',
+											'tipo_dato' => PDO::PARAM_STR,
+											'longitud' => 20,
+											'valor'=>$fecha_actualizacion),
+										array(  'nombre' => 'comprobantesFact',
+											'tipo_dato' => PDO::PARAM_STR,
+											'longitud' => 4000,
+											'valor'=> ''),
+										array(  'nombre' => 'resultado',
+											'tipo_dato' => PDO::PARAM_STR,
+											'longitud' => 4000,
+											'valor' => '')
+										);
+
+				$resultado = toba::db()->ejecutar_store_procedure($sql, $parametros);
+
+				if (strcasecmp($resultado[2]['valor'], 'OK') <> 0){
+					toba::db()->abortar_transaccion();
+					throw new toba_error($resultado[2]['valor']);
+				}
+				$rta = $resultado[2]['valor'];
+				$comprobantesFact = $resultado[1]['valor'];
+			}
+			toba::db()->cerrar_transaccion();
+
+			// Tomar el total de las facturas generadas y la máxima fecha de vto.
+			$sql= "SELECT F.id_comprobante, f.importe_1vto total, f.fecha_2vto fecha_vto, IMP.COD_IMPUESTO COD_CONCEPTO, IMP.DESCRIPCION DESC_CONCEPTO,
+					'F.Nro:'||F.NRO_FACTURA||' '|| pkg_varios.significado_dominio('RE_TIPO_CUENTA',CTA.TIPO_CUENTA)||' '|| CTA.NRO_CUENTA||':'||pkg_facturas.armar_descripcion_factura(F.ID_COMPROBANTE, 'N') DESCRIPCION
+				FROM RE_FACTURAS f, RE_COMPROBANTES_CUENTA CC, RE_IMPUESTOS IMP,RE_CUENTAS CTA
+				WHERE F.ID_COMPROBANTE=CC.ID_COMPROBANTE
+				  and CC.COD_IMPUESTO=IMP.COD_IMPUESTO
+				  AND CC.ID_CUENTA=CTA.ID_CUENTA
+				  AND instr('$comprobantesFact', '#'||f.id_comprobante||'#')>0";
+
+			$comprobantes =toba::db()->consultar($sql);
+
+			$sql= "SELECT sum(importe_1vto) total, max(f.fecha_2vto) fecha_vto
+				FROM RE_FACTURAS f
+				WHERE instr('$comprobantesFact', '#'||f.id_comprobante||'#')>0";
+			$datos= toba::db()->consultar_fila($sql);
+
+			return array("rta" => $rta, 
+						"comprobantesFact" => $comprobantesFact,
+						"comprobantes" => $comprobantes,
+						"total" => $datos["total"],
+						"max_fecha_vto" => $datos["fecha_vto"]);
+		} catch (Exception $e) {
+			return array("rta" => "Error", 
+						"error" => $e->get_message() );
+		}
+	}
+
+
 		return dao_deudas::generar_facturas_x_id_comprobantes($id_comprobantes, $fecha_actualizacion);
 	}
 

@@ -114,7 +114,7 @@ class backend_erp implements backend_servicio
                    "FACTURAS_CLIENTE.SALDO_IMPAGO(deu_capital)",
                    "PERSONAS.NOMBRE(cont_desc1)",
                    "PERSONAS.NOMBRE",
-                   "FACTURAS_CLIENTE.FECHA_VENCIMIENTO(deu_vto)",
+                   "FACTURAS_CLIENTE.FECHA_GENERACION(deu_vto)",
                    "FACTURAS_CLIENTE.TIPO_FACTURA",
                    "FACTURAS_CLIENTE.NRO_FACTURA"];
 
@@ -174,7 +174,7 @@ class backend_erp implements backend_servicio
                              "imp_id"=>1,
                              "imp_desc1"=>"Periodo",
                              "per_id"=> 1,
-                             "deu_id"=>$row['ID_EMPRESA']."-".$row['NRO_SUCURSAL']."-".$row['ID_FACTURA'],
+                             "deu_id"=>$row['ID_EMPRESA']."-".$row['ID_FACTURA'],
                              "deu_desc1"=> "Fac. ".$row['TIPO_FACTURA']." ".$row['NRO_FACTURA']." Vto".$row['deu_vto'],
                              "deu_recargo"=>0
                             ]
@@ -203,114 +203,148 @@ class backend_erp implements backend_servicio
         return $array_rta;
     }    
 
+    public function resumen_pago($id_comprobantes, $fecha_actualizacion){
+      try{
+
+        //
+        // Recorrer facturas y sumarlas
+        // [{"id":"1-0-41"},{"id":"1-0-54"},{"id":"1-0-42"}]
+        $consulta = new \Backend\Modelos\Erp\Facturas(SlimBackend::Backend());
+
+        $campos = ["SALDO_IMPAGO",
+                   "FECHA_VENCIMIENTO"=>\Medoo\Medoo::raw("TO_CHAR(FECHA_VENCIMIENTO,'yyyy-mm-dd HH24:MI:SS')")];
+        $total = 0;
+        $comprobantes=[];
+        foreach ($id_comprobantes as $key => $value) {
+          list($id_empresa,$id_factura) =preg_split("/-/",$value["id"]);
+
+          $condicion["FACTURAS_CLIENTE.ID_EMPRESA"]=$id_empresa;
+          $condicion["FACTURAS_CLIENTE.ID_FACTURA"]=$id_factura;
+          $factura = $consulta->select($campos,$condicion); 
+          $total += $factura[0]["SALDO_IMPAGO"];
+          $comprobantes[] = ["id_comprobante"=>$value["id"],
+                              "total"=>$factura[0]["SALDO_IMPAGO"],
+                              "fecha_vto"=>$factura[0]["FECHA_VENCIMIENTO"]
+                            ];
+
+        }
+
+        return array("rta" => "OK", 
+              "comprobantesFact" => $id_comprobantes,
+              "comprobantes" => $comprobantes,
+              "total" => $total,
+              "max_fecha_vto" => $fecha_actualizacion);
+      } catch (Exception $e) {
+        return array("rta" => "Error", 
+              "error" => $e->get_message() );
+      }
+    }
+    
     public function get_reporte_factura($parametros){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
     private function get_datos_impresion($seleccion){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
 
     public function get_declaraciones_juradas($filtro, $order_by){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
     public function get_actividades($filtro){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
     public function valor_configuraciones($campo){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
     public function get_actividad_principal_comercio_x_id($id_comercio){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
     public function get_tipos_ddjj($filtro){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
     public function retornar_impuesto_tipo_ddjj($id_comercio, $tipo_declaracion){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
     public function retornar_fecha_calculo($cod_impuesto, $anio, $cuota){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
     public function retornar_ddjj_alicuota($id_comercio, $cod_actividad, $valor, $fecha_calculo){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
     public function retornar_ddjj_minimo($id_comercio, $cod_actividad, $valor, $fecha_calculo){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
     public function retornar_ddjj_en_carga($id_comercio, $cod_actividad, $tipo_declaracion, $anio, $cuota){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
     public function retornar_ddjj_pend_pago($id_comercio, $cod_actividad, $tipo_declaracion, $anio_raw, $cuota_raw){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
     public function retornar_ddjj_def_anterior($id_comercio, $cod_actividad, $tipo_declaracion, $anio, $cuota){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
     public function retornar_ddjj_importe($nro_declaracion){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
     public function retornar_ddjj_ant_anterior($id_comercio, $cod_actividad, $tipo_declaracion, $anio, $cuota){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
     public function retornar_ddjj_fijo($id_comercio, $cod_actividad, $valor, $fecha_calculo){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
     public function calcular_ddjj_importe($id_comercio, $cod_actividad, $valor, $alicuota, $minimo, $fecha_calculo){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
     public function anular_ddjj($nro_declaracion){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
     public function buscar_cuenta($filtro){
-        return array(resultado=>'NO_IMPLEMENTADO'); 
+        return array("resultado"=>'NO_IMPLEMENTADO'); 
     }
 
-    public function resumen_pago($id_comprobantes, $fecha_actualizacion){
-        return array(resultado=>'NO_IMPLEMENTADO');
-    }
 
     public function crear_operacion_pago($comprobantes){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
     public function anular_operacion_pago($id_operacion)
-        { return array(resultado=>'NO_IMPLEMENTADO');}
+        { return array("resultado"=>'NO_IMPLEMENTADO');}
 
 
     public function get_facturas($filtro){
-        return array(resultado=>'NO_IMPLEMENTADO');
+        return array("resultado"=>'NO_IMPLEMENTADO');
     }
 
     public function alta_debito_automatico($parametros)
-        { return array(resultado=>'NO_IMPLEMENTADO');}
+        { return array("resultado"=>'NO_IMPLEMENTADO');}
 
     public function baja_debito_automatico($parametros)
-        { return array(resultado=>'NO_IMPLEMENTADO');}
+        { return array("resultado"=>'NO_IMPLEMENTADO');}
 
     public function alta_factura_electronica($parametros)
-        { return array(resultado=>'NO_IMPLEMENTADO');}
+        { return array("resultado"=>'NO_IMPLEMENTADO');}
 
     public function baja_factura_electronica($parametros)
-        { return array(resultado=>'NO_IMPLEMENTADO');}
+        { return array("resultado"=>'NO_IMPLEMENTADO');}
 
     public function get_consulta_dinamica($reporte,$parametros){
 
@@ -320,6 +354,6 @@ class backend_erp implements backend_servicio
     }
 
     public function proveedores_facturas($parametros)
-        { return array(resultado=>'NO_IMPLEMENTADO');}
+        { return array("resultado"=>'NO_IMPLEMENTADO');}
 }
 ?>

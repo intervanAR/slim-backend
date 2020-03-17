@@ -10,8 +10,9 @@ class ConsultasDinamicas extends \Backend\Modelos\ModeloBase
 	}
 
 	public function ejecutar( $reporte,$parametros) {
+		$this->container->logger->debug('ConsultasDinamicas reporte'.$reporte);
 		$consultas = $this->select ("QUERY",array("REPORTE"=>$reporte));
-		
+		$this->container->logger->debug('ConsultasDinamicas'.print_r($this->container->db->log(),true));		
 		$query = stream_get_contents($consultas[0]);	
 
 		// Reemplazar Parámetros
