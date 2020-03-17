@@ -22,8 +22,23 @@ class ConsultasDinamicas extends \Backend\Modelos\ModeloBase
 			}
 		}
 		$this->container->logger->debug('ConsultasDinamicas.ejecutar:'.$query);
-		$datos = $this->db->pdo->query($query)->fetchAll();
- 
-		return $datos;	
+
+		$rta = array();
+		$l_filas = 0;
+
+		$pdo= $this->db->pdo;
+		$stmt = $pdo->prepare($query, array(\PDO::ATTR_CURSOR => \PDO::CURSOR_SCROLL));
+		$stmt->execute();
+		while ($row = $stmt->fetch(\PDO::FETCH_ASSOC, \PDO::FETCH_ORI_NEXT)) {
+		  // Si es la 1er fila => creo el grupo
+			foreach ($row as $key => $value) {
+					if( isset($row[$key]) && is_resource($row[$key])) {
+							$row[$key] = stream_get_contents($row[$key]);
+					}
+			}	
+			$rta[]=$row;
+			$l_filas++;
+		}
+		return $rta;	
 	}
 }
