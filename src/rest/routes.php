@@ -124,7 +124,7 @@ $app->post('/servicios/consultas_dinamicas', function (Request $request, Respons
 
 
 			$myresponse = $response->withHeader('Content-Type', 'application/json')->
-					write(json_encode(array_a_utf8($datos));
+					write(json_encode(array_a_utf8($datos)));
 		    return $myresponse;
 		}
 	);
