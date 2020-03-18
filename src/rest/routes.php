@@ -9,6 +9,36 @@ use OpenApi\Annotations as OA;
 Use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
+
+function array_a_utf8($datos){
+		if (is_string($datos)) {
+			return utf8_encode($datos);
+		}
+		if (!is_array($datos)) {
+			return $datos;
+		}
+		$ret = array();
+		foreach ($datos as $i => $d) {
+			$ret[$i] = array_a_utf8($d);
+		}
+		return $ret;
+	}
+
+  function utf8_to_array($datos){
+        if (is_string($datos)) {
+            return utf8_decode($datos);
+        }
+        if (!is_array($datos)) {
+            return $datos;
+        }
+        $ret = array();
+        foreach ($datos as $i => $d) {
+            $ret[$i] = utf8_to_array($d);
+        }
+        return $ret;
+  }
+
+
 /**
  * @OA\Get(
  *     path="/backend/test",
@@ -94,7 +124,7 @@ $app->post('/servicios/consultas_dinamicas', function (Request $request, Respons
 
 
 			$myresponse = $response->withHeader('Content-Type', 'application/json')->
-					write(json_encode($datos));
+					write(json_encode(array_a_utf8($datos));
 		    return $myresponse;
 		}
 	);
