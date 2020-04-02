@@ -1,5 +1,6 @@
 <?php
 	$container = $app->getContainer();
+	$container['upload_directory'] = $container->get('settings')['upload_directory'];	 
 
 	$container['logger'] = function ($c){
 		$settings = $c->get('settings')['logger'];

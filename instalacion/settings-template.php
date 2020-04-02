@@ -15,8 +15,9 @@
 						 "port" => "1521",
 						 "username" => "irsol",
 						 "password" => "irsol",
-						 "charset"=>"WE8ISO8859P1"						
-				],
+						 "charset"=>"WE8ISO8859P1",
+						 "command"=>["ALTER SESSION SET NLS_DATE_FORMAT = 'YYYY-MM-DD HH24:MI:SS'",
+									  "ALTER SESSION SET NLS_NUMERIC_CHARACTERS = '.,'"]									],
 				// Autenticación de Usuarios , puede utilizar validación Básica o Firebase
 				'authentication' =>["basic" =>[ 
 										"path"=>["/test","/api_docs","/*"], // Paths a controlar con authenticación básica

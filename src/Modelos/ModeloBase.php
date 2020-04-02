@@ -15,6 +15,13 @@ abstract class ModeloBase{
 
 	abstract public function getSource();
 
+	public function error(){
+		return ($this->container->db->error()[0]!=="00000" );
+	}
+
+	public function getDB(){
+		return $this->container->db;
+	}
 
 	public function selectj($joins,$columns,$where=[]){
 		return $this->container->db->select($this->getSource(),$joins,$columns,$where);

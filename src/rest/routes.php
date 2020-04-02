@@ -8,6 +8,26 @@ use OpenApi\Annotations as OA;
 
 Use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
+use \Slim\Http\UploadedFile;
+use \Backend\SlimBackend;
+/**
+ * Moves the uploaded file to the upload directory and assigns it a unique name
+ * to avoid overwriting an existing uploaded file.
+ *
+ * @param string $directory directory to which the file is moved
+ * @param UploadedFile $uploadedFile file uploaded file to move
+ * @return string filename of moved file
+ */
+function moveUploadedFile($directory, UploadedFile $uploadedFile)
+{
+    $extension = pathinfo($uploadedFile->getClientFilename(), PATHINFO_EXTENSION);
+    $basename = bin2hex(random_bytes(8)); // see http://php.net/manual/en/function.random-bytes.php
+    $filename = sprintf('%s.%0.8s', $basename, $extension);
+
+    $uploadedFile->moveTo($directory . DIRECTORY_SEPARATOR . $filename);
+
+    return $filename;
+}
 
 
 function array_a_utf8($datos){
@@ -131,6 +151,81 @@ $app->post('/servicios/consultas_dinamicas', function (Request $request, Respons
 
 /**
     @OA\Get(
+       	path="/backend/servicios/buscar_cuenta",
+       	tags={"Cuentas Clientes"},
+       	summary="Busca cuentas para asociar a usuario por tipo y nro de documento o por mail",
+       	description="Se puede buscar por tipo y nro de documento o por mail",
+       	operationId="get_cuentas",
+       	deprecated=false,
+     		@OA\Parameter(
+    			name="usuario",
+     			in="query",
+			    description="Identificar de usuario",
+			    required=false,
+			    explode=false,
+			    ),
+     *     @OA\Parameter(
+     *         name="tipo_doc",
+     *         in="query",
+     *         description="Tipo de Documento",
+     *         required=false,
+     *         explode=false,
+     *     ),
+     *     @OA\Parameter(
+     *         name="nro_documento",
+     *         in="query",
+     *         description="Nro Documento",
+     *         required=false,
+     *         explode=false,
+     *     ),
+     *     @OA\Parameter(
+     *         name="email",
+     *         in="query",
+     *         description="email",
+     *         required=false,
+     *         explode=false,
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="successful operation",
+     *         @OA\JsonContent(
+     *   		   @OA\Schema(
+     *     			   type="array",
+					   @OA\Schema(
+					     @OA\Property(property="tipo_objeto", type="string"),
+					     @OA\Property(property="id_objeto", type="string")
+					   )
+					)
+     *         ),
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Invalid status value"
+     *     ),
+     *     security={
+     *         {"backend_auth": {"write:cuentas", "read:cuentas"}}
+     *     }
+     * )
+     */
+$app->get('/servicios/buscar_cuenta', function (Request $request, Response $response, array $args) {
+
+			$this->logger->debug('/servicios/buscar_cuenta:'.json_encode($request->getQueryParams()));
+
+			$body = $request->getQueryParams();
+
+			$datos = $this->sistema->get_cuentas($body)[0];
+
+			$cantidad = count($datos);
+
+			$myresponse = $response->withAddedHeader('Content-Type', 'application/json')->
+									withAddedHeader('Cantidad-Registros', "$cantidad");			
+			$myresponse->write(json_encode($datos));
+		    return $myresponse;
+			}
+	);
+
+/**
+    @OA\Get(
        	path="/backend/servicios/cuentas_x_usuario",
        	tags={"Cuentas Clientes"},
        	summary="Busca cuentas para asociar a usuario por tipo y nro de documento o por mail",
@@ -203,6 +298,7 @@ $app->get('/servicios/cuentas_x_usuario', function (Request $request, Response $
 		    return $myresponse;
 			}
 	);
+
 
 /**
  * @OA\Post(
@@ -336,9 +432,10 @@ $app->post('/servicios/cuentas_x_objetos', function (Request $request, Response 
    $app->post('/servicios/consulta_deuda', function (Request $request, Response $response, array $args) {
 
 			$this->logger->debug('/servicios/cuentas_x_usuario:'.$request->getBody()->getContents());
-			$body = json_decode($request->getBody()->getContents(),true);
+			
+			$parametros =  $request->getParsedBody(); 
 
-			$datos = $this->sistema->consulta_deuda($body);
+			$datos = $this->sistema->consulta_deuda($parametros);
 
 			$cantidad = count($datos);
 
@@ -411,10 +508,10 @@ $app->post('/servicios/cuentas_x_objetos', function (Request $request, Response 
 
 $app->post('/servicios/resumen_pago', function (Request $request, Response $response, array $args) {
 
-			$this->logger->debug('/servicios/cuentas_x_usuario:'.$request->getBody()->getContents());
-			$parametros = json_decode($request->getBody()->getContents(),true);
+			$this->logger->debug('/servicios/resumen_pago ');
 
-			if (isset($parametros['id_comprobantes']))
+			$parametros = $request->getParsedBody(); 
+ 			if (isset($parametros['id_comprobantes']))
 				$id_comprobantes= $parametros['id_comprobantes'];
 			else
 				$id_comprobantes= null;
@@ -928,10 +1025,16 @@ $app->Post('/servicios/facturas', function (Request $request, Response $response
        	operationId="reporte_factura",
        	deprecated=false,
      		@OA\Parameter(
-    			name="id_comprobante",
+    			name="p_cadena_facturas",
      			in="query",
-			    description="Identificar el comprobante de factura o cupon de pago",
+			    description="Identificar cadena de facturas separadas por #",
 			    required=true,
+			    explode=false,
+			    ),
+     		@OA\Parameter(
+    			name="pdf",
+     			in="query",
+			    description="Identificar cadena de facturas separadas por #",
 			    explode=false,
 			    ),
         	@OA\Response(
@@ -958,7 +1061,11 @@ $app->Get('/servicios/reporte_factura', function (Request $request, Response $re
 					withAddedHeader('content-disposition', 'attachment; filename=archivo.pdf')->
 					withAddedHeader('charset', 'utf-8;base64');
 
-	$myresponse->write(base64_encode($lineas));
+	if (isset($parametros["pdf"]))
+		$myresponse->write($lineas);
+	else
+		$myresponse->write(base64_encode($lineas));
+	
     return $myresponse;
 });
 
@@ -1549,3 +1656,61 @@ $app->Post('/servicios/proveedores_facturas', function (Request $request, Respon
 	$myresponse->write(json_encode($datos));
     return $myresponse;
 });
+
+$app->Post('/backend/importar', function (Request $request, Response $response, array $args) {
+
+	$parametros = $request->getParsedBody();
+
+	$this->logger->debug('/backend/importar '.json_encode($parametros));
+
+	$options="";
+	$error_params = false;
+	if( !isset($parametros["entidad"])){
+		$response->write("Falta parametro 'entidad= una de personas, cuentas, cuentas_personas, deudas, parametros, referencias'");	
+		$error_params = true;
+	}
+	$entidad= $parametros["entidad"];
+
+	if( !isset($parametros["campos"])){
+		$response->write("Falta parametro 'campos=field_1,field_2,,field_5,...'");	
+		$error_params = true;
+	}
+	if(isset($parametros["options"])){
+		$options=$parametros["options"];
+	}
+	if( $error_params)
+		return $response;
+
+	$id_empresa=1;
+	if( strcmp("T" , $options ) === 0 ){
+		$result=SlimBackend::truncate_data($id_empresa , $entidad );
+		if($result!=="OK"){
+				$response->write($result);
+				return $response;
+		}		
+	}
+
+	$campos=explode(',', $parametros["campos"]);
+
+	$directory = $this->get('upload_directory');
+
+    $uploadedFiles = $request->getUploadedFiles();
+ 
+     // handle multiple inputs with the same key
+    foreach ($uploadedFiles as $uploadedFile) {
+        if ($uploadedFile->getError() === UPLOAD_ERR_OK) {
+            $filename = moveUploadedFile($directory, $uploadedFile);
+
+           	$result = SlimBackend::import_data( $id_empresa,$entidad,
+           		$directory."/".$filename,$campos,$options,',');
+			if($result["resultado"]!=="OK"){
+					$response->write("Error importando datos:".print_r($result,true));
+					return $response;
+			}else		
+            	$response->write("Entidad: $entidad Archivo: $filename Insertados:".$result["inserts"]);
+        }
+    }
+    return $response;
+});
+
+
