@@ -275,7 +275,7 @@ class backend_aguas implements backend_servicio
                 				"deu_desc2" => "",
                 				"deu_vto"=>$deu["deu_vto"],
                 				"deu_capital"=>$neto+$iva,
-                				"deu_recargo"=>$interes_neto+$iva_interes
+                				"deu_recargo"=>($interes_neto+$iva_interes)
 								];
 					}else{
 						$prox[] = ["cont_id"=> $cta_datos["ID_PERSONA"],
@@ -298,7 +298,7 @@ class backend_aguas implements backend_servicio
                 				"deu_desc2" => "",
                 				"deu_vto"=>$deu["deu_vto"],
                 				"deu_capital"=>$neto+$iva,
-                				"deu_recargo"=>$interes_neto+$iva_interes
+                				"deu_recargo"=>($interes_neto+$iva_interes)
 								];
 
 					}
@@ -421,7 +421,7 @@ pkg_convenios.datos_cuota(
                 				"deu_desc2" => "",
                 				"deu_vto"=>$cta["deu_vto"],
                 				"deu_capital"=>$neto_actualizado+$iva_actualizado,
-                				"deu_recargo"=>$interes_neto+$iva_interes+$iva_interes_actualizado
+                				"deu_recargo"=>($interes_neto+$iva_interes+$iva_interes_actualizado)
 								];
 					}else{
 						$prox[] = ["cont_id"=> $cta_datos["ID_PERSONA"],
@@ -444,7 +444,7 @@ pkg_convenios.datos_cuota(
                 				"deu_desc2" => "",
                 				"deu_vto"=>$cta["deu_vto"],
                 				"deu_capital"=>$neto_actualizado+$iva_actualizado,
-                				"deu_recargo"=>$interes_neto+$iva_interes+$iva_interes_actualizado
+                				"deu_recargo"=>($interes_neto+$iva_interes+$iva_interes_actualizado)
 								];
 
 					}
