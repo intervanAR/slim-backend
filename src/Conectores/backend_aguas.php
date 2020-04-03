@@ -1021,7 +1021,7 @@ pkg_convenios.datos_cuota(
                     ["text-x"=>22 , "text-y"=>86,"text"=>utf8_encode($row["INMUEBLE_DTO"])],
                     ["text-x"=>42 , "text-y"=>89,"text"=>utf8_encode($row["DATOS_CATASTRALES"])],
                     ["font-family"=>"times" , "font-size"=>10 ],                    
-                    ["multi-x"=>3 , "multi-y"=>132,"multi-text"=>$row["TELEFONO"],
+                    ["multi-x"=>3 , "multi-y"=>132,"multi-text"=>utf8_encode($row["TELEFONO"]),
                     "multi-al"=>"L","multi-w"=>80,"multi-h"=>10],
 
                     ["font-family"=>"times" , "font-size"=>12, "font-style"=>"B" ],
