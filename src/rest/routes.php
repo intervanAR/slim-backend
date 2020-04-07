@@ -820,7 +820,7 @@ $app->Delete('/servicios/facturaElectronica', function (Request $request, Respon
 $app->Post('/servicios/crear_operacion_pago', function (Request $request, Response $response, array $args) {
 
 	$this->logger->debug('/servicios/crear_operacion_pago:'.$request->getBody()->getContents());
-	$parametros = json_decode($request->getBody()->getContents(),true);
+	$parametros = $request->getParsedBody();
 
 	$facturas= $this->sistema->crear_operacion_pago($parametros);
 
@@ -867,8 +867,9 @@ $app->Post('/servicios/crear_operacion_pago', function (Request $request, Respon
 $app->Post('/servicios/anular_operacion_pago', function (Request $request, Response $response, array $args) {
 
 	$this->logger->debug('/servicios/anular_operacion_pago:'.$request->getBody()->getContents());
-	$parametros = json_decode($request->getBody()->getContents(),true);
 
+	$parametros = $request->getParsedBody();
+	
 	$id_operacion = null;
 	if(isset($parametros["id_operacion"]))
 		$id_operacion=$parametros["id_operacion"];
@@ -998,10 +999,11 @@ $app->Post('/servicios/anular_operacion_pago', function (Request $request, Respo
        )
    )
  */
-$app->Post('/servicios/facturas', function (Request $request, Response $response, array $args) {
+$app->Post('/servicios/consulta_facturas', function (Request $request, Response $response, array $args) {
 
-	$this->logger->debug('/servicios/facturas:'.$request->getBody()->getContents());
-	$parametros = json_decode($request->getBody()->getContents(),true);
+	$this->logger->debug('/servicios/consulta_facturas:'.$request->getBody()->getContents());
+	
+	$parametros = $request->getParsedBody();
 
 	$facturas = $this->sistema->get_facturas($parametros);
 
@@ -1055,8 +1057,11 @@ $app->Get('/servicios/reporte_factura', function (Request $request, Response $re
 
    	$archivo = $this->sistema->get_reporte_factura($parametros);
 
+	$this->logger->debug("/servicios/reporte_factura archivo:".$archivo);
+	
 	$lineas= file_get_contents($archivo);
 
+   
 	$myresponse = $response->withAddedHeader('Content-Type', 'application/pdf')->
 					withAddedHeader('content-disposition', 'attachment; filename=archivo.pdf')->
 					withAddedHeader('charset', 'utf-8;base64');

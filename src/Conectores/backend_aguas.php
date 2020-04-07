@@ -684,15 +684,249 @@ pkg_convenios.datos_cuota(
 
 
     public function crear_operacion_pago($comprobantes){
-        return array("resultado"=>'NO_IMPLEMENTADO');
+    try{
+
+        $transaccion=false;
+        // Recorrer facturas y sumarlas
+        // [{"id":"1-0-41"},{"id":"1-0-54"},{"id":"1-0-42"
+        $consulta = new DeudaTmp(SlimBackend::Backend());
+        $database = $consulta->db;
+        $logger = $consulta->logger; 
+        $database->pdo->beginTransaction();
+        $transaccion=true;
+
+
+        $sth = $database->pdo->prepare("begin :rta := pkg_backend.buscar_liquidacion (
+                    :id_empresa,
+                    :id_sucursal,
+                    TRUNC(sysdate),
+                    :id_recaudador,
+                    :nro_liquidacion);
+                    end;");
+
+
+        $now = new \DateTime();
+        $rta = "";
+        $id_empresa_liq=1;
+        $id_sucursal_liq=0;
+        $fecha=$now->format('Y-m-d')." 00:00:00";
+        $id_recaudador=0;
+        $nro_liquidacion=0;
+
+        $sth->bindParam(':id_empresa', $id_empresa_liq, \PDO::PARAM_INT);
+        $sth->bindParam(':id_sucursal', $id_sucursal_liq, \PDO::PARAM_INT);
+        $sth->bindParam(':id_recaudador', $id_recaudador, \PDO::PARAM_INT|| \PDO::PARAM_INPUT_OUTPUT,100);
+        $sth->bindParam(':nro_liquidacion', $nro_liquidacion, \PDO::PARAM_INT|| \PDO::PARAM_INPUT_OUTPUT,100);
+        $sth->bindParam(':rta', $rta, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,1000 );
+
+        if( !$sth->execute()  ){
+            $logger->debug( "crear_operacion_pago error ".print_r($sth->errorInfo(),true));
+            $transaccion=false;
+            $database->pdo->rollback();
+            return "crear_operacion_pago error ".print_r($sth->errorInfo(),true);
+        }
+
+        if( "OK" !==$rta ){
+            $logger->debug( "crear_operacion_pago buscar liquidacion error ".$rta);
+            $transaccion=false;
+            $database->pdo->rollback();
+            return "crear_operacion_pago buscar liquidacion error ".$rta;
+        }
+
+        $total = 0;
+
+        $id_operaciones = []; // Se retornarán todos los cobros generados
+
+        foreach ($comprobantes as $key => $factura){
+
+            list($id_empresa,$id_sucursal,$nro_factura,$cod_iva)= preg_split("/-/",$factura["id_comprobante"]);
+
+            $sth = $database->pdo->prepare("begin :rta := pkg_backend.agregar_pago ( 
+                            :id_empresa_liq,
+                            :id_sucursal_liq, 
+                            :id_recaudador,
+                            :nro_liquidacion,
+                            :id_empresa,
+                            :id_sucursal,
+                            :cod_iva,
+                            :nro_factura,
+                            trunc(sysdate),
+                            :importe,
+                            :id_cobro_factura 
+                            );
+                        end;");
+
+            $rta = "";
+            $id_cobro_factura = 0;
+            $sth->bindParam(':id_empresa_liq', $id_empresa_liq, \PDO::PARAM_INT);
+            $sth->bindParam(':id_sucursal_liq', $id_sucursal_liq, \PDO::PARAM_INT);
+            $sth->bindParam(':id_recaudador', $id_recaudador, \PDO::PARAM_INT);
+            $sth->bindParam(':nro_liquidacion', $nro_liquidacion, \PDO::PARAM_INT);
+
+            $sth->bindParam(':id_empresa', $id_empresa, \PDO::PARAM_INT);
+            $sth->bindParam(':id_sucursal', $id_sucursal, \PDO::PARAM_INT);
+            $sth->bindParam(':cod_iva', $cod_iva, \PDO::PARAM_INT);
+            $sth->bindParam(':nro_factura', $nro_factura, \PDO::PARAM_INT);
+            $sth->bindParam(':importe', $factura["importe"], \PDO::PARAM_INT);
+            $sth->bindParam(':id_cobro_factura', $id_cobro_factura, \PDO::PARAM_INT || \PDO::PARAM_INPUT_OUTPUT ,1000 );
+
+            $sth->bindParam(':rta', $rta, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,1000 );
+
+            if( !$sth->execute()  ){
+                $logger->debug( "crear_operacion_pago agregar_pago ".print_r($sth->errorInfo(),true));
+                $transaccion=false;
+                $database->pdo->rollback();
+                return "crear_operacion_pago agregar_pago ".print_r($sth->errorInfo(),true);
+            }
+
+            if( "OK" !==$rta ){
+                $logger->debug( "crear_operacion_pago agregar_pago error ".$rta);
+                $transaccion=false;
+                $database->pdo->rollback();
+                return "crear_operacion_pago agregar_pago error ".$rta;
+            }
+            $id_operaciones[] = $id_empresa."-".$id_cobro_factura;
+
+        }
+        $database->pdo->commit();
+
+        return array("rta" => "OK", 'id_operacion_pago' => $id_operaciones);
+
+    } catch (Exception $e) {
+        if( $transaccion){
+            $database->pdo->rollback();            
+        }
+        return array("rta" => $e->get_mensaje(), 'id_operacion_pago' => '');
+    }
     }
 
-    public function anular_operacion_pago($id_operacion)
-        { return array("resultado"=>'NO_IMPLEMENTADO');}
+    public function anular_operacion_pago($id_operacion){
+    try{
+
+
+
+        $transaccion=false;
+        // Recorrer facturas y sumarlas
+        // [{"id":"1-0-41"},{"id":"1-0-54"},{"id":"1-0-42"
+        $consulta = new DeudaTmp(SlimBackend::Backend());
+        $database = $consulta->db;
+        $logger = $consulta->logger; 
+        $database->pdo->beginTransaction();
+        $transaccion=true;
+
+        $logger->debug( "anular_operacion_pago anulando".print_r($id_operacion,true));
+
+        foreach ($id_operacion as $key => $operacion) {
+            # code...
+            list($id_empresa,$id_cobro_factura)= preg_split("/-/",$operacion);
+
+            $sth = $database->pdo->prepare("begin :rta := pkg_cobros.anular_cobro (:id_empresa,
+                :id_cobro_factura);
+                end;");
+
+            $rta = "";
+            $sth->bindParam(':id_empresa', $id_empresa, \PDO::PARAM_INT);
+            $sth->bindParam(':id_cobro_factura', $id_cobro_factura, \PDO::PARAM_INT);
+            $sth->bindParam(':rta', $rta, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,1000 );
+
+            if( !$sth->execute()  ){
+                $logger->debug( "anular_operacion_pago anular".print_r($sth->errorInfo(),true));
+                $transaccion=false;
+                $database->pdo->rollback();
+                return "anular_operacion_pago anular".print_r($sth->errorInfo(),true);
+            }
+
+            if( "OK" !==$rta ){
+                $logger->debug( "anular_operacion_pago error ".$rta);
+                $transaccion=false;
+                $database->pdo->rollback();
+                return "anular_operacion_pago error ".$rta;
+            }
+        }
+        $transaccion=false;
+        $database->pdo->commit();
+
+        return array("rta" => "OK");
+    } catch (Exception $e) {
+        if( $transaccion){
+            $database->pdo->rollback();            
+        }
+        return array("rta" => $e->get_mensaje());
+    }
+    }
 
 
     public function get_facturas($filtro){
-        return array("resultado"=>'NO_IMPLEMENTADO');
+        $consulta = new Factura(SlimBackend::Backend());
+        $database = $logger = $consulta->db;
+        $logger = $consulta->logger; 
+        $logger->debug( "get_facturas:".json_encode($filtro));
+
+        $cuentas=null;
+        if( isset($filtro["cuentas"])){
+            $cuentas= $filtro["cuentas"];
+        }
+        $facturas=[];
+        foreach ($cuentas as $key_cta => $value_cta) {
+            list($id_empresa,$id_sucursal,$cuenta)= preg_split("/-/",$value_cta["id_cuenta"]);      
+            $sql = "SELECT   id_empresa || '-' || cod_iva || '-' || nro_factura \"nro_factura\",
+                             id_empresa || '-' || id_sucursal|| '-' || nro_factura ||'-'||cod_iva \"id_comprobante\",
+                             'Servicio' \"descripcion_factura\",
+                             CASE
+                                WHEN fecha_1vto >= TRUNC (SYSDATE)
+                                   THEN fecha_1vto
+                                WHEN fecha_2vto >= TRUNC (SYSDATE)
+                                   THEN fecha_2vto
+                                ELSE fecha_1vto
+                             END \"fecha_1vto\",
+                             CASE
+                                WHEN fecha_1vto >= TRUNC (SYSDATE)
+                                   THEN importe_1vto + ley25413
+                                WHEN fecha_2vto >= TRUNC (SYSDATE)
+                                   THEN importe_2vto + ley25413_2
+                                ELSE importe_1vto + ley25413
+                             END \"importe_1vto\",
+                             a.tipo_servicio tipo, 
+                             b.descripcion \"desc_tipo_servicio\",
+                             b.descripcion \"impuesto\",
+                             to_char(fecha_1vto,'yyyy') \"anio\",
+                             DECODE (pagada, 'S', 'Pagada', 'Impaga') \"desc_estado\",
+                             CASE
+                                WHEN pagada = 'N' AND fecha_2vto >= TRUNC (SYSDATE)
+                                   THEN 'S'
+                                ELSE 'N'
+                             END \"pagar\"
+                        FROM facturas a, tipos_servicios b
+                       WHERE a.id_empresa = 1
+                         AND a.id_sucursal = 1
+                         AND a.tipo_servicio = b.tipo_servicio
+                         AND pkg_facturacion.factura_original (a.id_empresa,
+                                                               a.id_sucursal,
+                                                               a.cod_iva,
+                                                               a.nro_factura
+                                                              ) = 'S'
+                         AND a.id_empresa=".$id_empresa."
+                         AND a.id_sucursal=".$id_sucursal."
+                         AND a.cuenta=".$cuenta."
+                    ORDER BY fecha_1vto 
+                    ";
+
+            $sth = $database->pdo->prepare($sql);
+
+            if( !$sth->execute()  ){
+                $logger->debug( "backend_aguas:get_facturas 1 error".print_r($sth->errorInfo(),true));
+                return "backend_aguas:get_facturas 1 error".print_r($sth->errorInfo(),true);
+            }
+
+
+            $filas= $sth->fetchAll();
+
+            foreach ($filas as $key_fac => $value_fac){
+                $filas[$key_fac]["cuenta"] = $cuentas[$key_cta];
+            }
+            $facturas=array_merge($facturas,$filas);
+        }
+        return $facturas;
     }
 
     public function alta_debito_automatico($parametros)
@@ -720,9 +954,10 @@ pkg_convenios.datos_cuota(
 
     public static function reporteFacturas($params) {
         
-        if(!isset($params["p_cadena_facturas"])) return "";
+        if(!isset($params["p_cadena_facturas"]) && !isset($params["id_comprobante"])) return "";
+        $consulta = new Factura(SlimBackend::Backend());
 
-    	$consulta = new Factura(SlimBackend::Backend());
+
     	$database = $consulta->db;
     	$logger = $consulta->logger;
 
@@ -735,7 +970,15 @@ pkg_convenios.datos_cuota(
         $pdf->SetKeywords('Oficina Virtual, Gestionar, Intervan');
 
 
-        $facturas = preg_split("/#/",substr($params["p_cadena_facturas"],1,-1));
+            
+        $consulta = new Factura(SlimBackend::Backend());
+
+        if(isset($params["p_cadena_facturas"])){
+            $facturas = preg_split("/#/",substr($params["p_cadena_facturas"],1,-1));
+        }
+        elseif(isset($params["id_comprobante"])){
+            $facturas = [$params["id_comprobante"]];
+        }
 
         foreach ($facturas as $key => $factura) {
         	# code...
@@ -751,8 +994,8 @@ pkg_convenios.datos_cuota(
 				    ,fac.comentario3
 				    ,to_char(fac.fecha_1vto ,'DD/MM/YY') fecha_1vto_txt
 				    ,to_char(fac.fecha_2vto ,'DD/MM/YY') fecha_2vto_txt
-                    ,fac.importe_1vto + fac.ley25413 total_1vto_txt
-                    ,fac.importe_2vto + fac.ley25413_2 total_2vto_txt
+                    ,fac.importe_1vto + fac.iva_1vto + fac.ley25413 total_1vto_txt
+                    ,fac.importe_2vto + fac.iva_2vto + fac.ley25413_2 total_2vto_txt
 				    ,fac.ley25413
 				    ,fac.ley25413_2
 				    ,fac.fecha_2vto
@@ -793,9 +1036,8 @@ pkg_convenios.datos_cuota(
 				    'M:'||catastro_manzana ||' '||
 				    'L:'||catastro_lote_letra ||' '||
 				    'UF:'||catastro_uf ||' .' datos_catastrales,
-                    emp.descripcion nombre_empresa,
-        
-                'Nuestras oficinas atienden al público de 8 a 13hs en '||pkg_modelos.direccion_localidad_sucursal(fac.id_empresa,fac.id_sucursal,cue.cod_localidad)||' Tel. '||
+                    emp.descripcion nombre_empresa,        
+                    'Nuestras oficinas atienden al público de 8 a 13hs en '||pkg_modelos.direccion_localidad_sucursal(fac.id_empresa,fac.id_sucursal,cue.cod_localidad)||' Tel. '||
   pkg_modelos.telefono_localidad_sucursal(fac.id_empresa,fac.id_sucursal,cue.cod_localidad) telefono
 				from facturas fac
 				  ,cuentas cue
@@ -846,6 +1088,63 @@ pkg_convenios.datos_cuota(
 
             $row = $sth->fetchAll()[0];
 
+            //
+            // Verificar la factura Original
+            //
+            $sth = $database->pdo->prepare("begin :original := pkg_backend.datos_Factura(
+                        :id_empresa,
+                        :id_sucursal,
+                        :cod_iva,
+                        :nro_factura,
+                        :cuenta,
+                        :cp_tipo_deuda,    
+                        :cp_nro_medidor,
+                        :cp_estado_ant,
+                        :cp_fecha_lect_ant,
+                        :cp_estado_act,
+                        :cp_fecha_lect_act,
+                        :cp_consumo,
+                        :cp_cons_per_ant,
+                        :cp_cons_anio_ant, 
+                        :cp_promedio,
+                        :cp_compartido,
+                        :cp_prox_vto,
+                        :cp_periodo_facturacion,
+                        :cp_tipo_facturacion,
+                        :cp_servicio_des,
+                        :cp_tipo_servicio
+                        );
+                  end;");
+
+            $sth->bindParam(':id_empresa', $id_empresa, \PDO::PARAM_INT);
+            $sth->bindParam(':id_sucursal', $id_sucursal, \PDO::PARAM_INT );
+            $sth->bindParam(':cod_iva', $cod_iva, \PDO::PARAM_STR );
+            $sth->bindParam(':nro_factura',$nro_factura, \PDO::PARAM_INT);
+            $sth->bindParam(':cuenta',$row["CUENTA"], \PDO::PARAM_INT);
+            $sth->bindParam(':cp_tipo_deuda',$cp_tipo_deuda, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+            $sth->bindParam(':cp_nro_medidor',$cp_nro_medidor, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+            $sth->bindParam(':cp_estado_ant',$cp_estado_ant, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+            $sth->bindParam(':cp_fecha_lect_ant',$cp_fecha_lect_ant, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+            $sth->bindParam(':cp_estado_act',$cp_estado_act, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+            $sth->bindParam(':cp_fecha_lect_act',$cp_fecha_lect_act, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+            $sth->bindParam(':cp_consumo', $cp_consumo, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+            $sth->bindParam(':cp_cons_per_ant', $cp_cons_per_ant, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+            $sth->bindParam(':cp_cons_anio_ant', $cp_cons_anio_ant, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+            $sth->bindParam(':cp_promedio', $cp_promedio, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+            $sth->bindParam(':cp_compartido',$cp_compartido, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+            $sth->bindParam(':cp_prox_vto',$cp_prox_vto, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+            $sth->bindParam(':cp_periodo_facturacion', $cp_periodo_facturacion, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+            $sth->bindParam(':cp_tipo_facturacion', $cp_tipo_facturacion, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+            $sth->bindParam(':cp_servicio_des', $cp_servicio_des, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+            $sth->bindParam(':cp_tipo_servicio', $cp_tipo_servicio, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+            $sth->bindParam(':original', $original, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+
+
+            if( !$sth->execute()  ){
+                $logger->debug( "backend_aguas:reporteFactura 1.8 ( $id_empresa, $id_sucursal ) error".print_r($sth->errorInfo(),true));
+                $database->pdo->rollback();
+                return "backend_aguas:reporteFactura 1.8 error".print_r($sth->errorInfo(),true);
+            }
 
             //
             // Calcular el detalle de la factura
@@ -987,10 +1286,22 @@ pkg_convenios.datos_cuota(
                 'stretchtext' => 4
             );
 
+            $comentario = $row["COMENTARIO1"]." ".
+                            $row["COMENTARIO2"]." ".
+                            $row["COMENTARIO3"];
+
+            if(strlen($comentario)>750){
+                $comentario = substr($comentario,1,750)."...";
+            }
             $data =[
                     ["font-family"=>"times" , "font-size"=>14 ],
                     ["text-x"=>85 , "text-y"=>25,"text"=>utf8_encode($row["APELLIDO_NOMBRE"])],
-                    ["text-x"=>150 , "text-y"=>63,"text"=>"LIQUIDACION DE DEUDA"],
+                    
+                    ($original==="N") ?
+                      ["text-x"=>140 , "text-y"=>63,"text"=>"LIQUIDACION DE DEUDA"] :
+                      ["text-x"=>140 , "text-y"=>63,"text"=>utf8_encode($cp_periodo_facturacion)]
+                    ,
+
                     ["font-family"=>"times" , "font-size"=>11 ],
                     ["text-x"=>85 , "text-y"=>30,"text"=>utf8_encode($row["POSTAL_CALLE"])],
                     ["text-x"=>85 , "text-y"=>35,"text"=>utf8_encode($row["POSTAL_PISO"])],
@@ -1013,7 +1324,6 @@ pkg_convenios.datos_cuota(
                     ["text-x"=>57 , "text-y"=>63,"text"=>$row["CUENTA"]],
                     ["font-family"=>"times" , "font-size"=>10 ],
                     ["text-x"=>107 , "text-y"=>68,"text"=>utf8_encode("(".$row["TIPO_SERVICIO"].")".$row["SERVICIO"])],
-                    ["text-x"=>121 , "text-y"=>74,"text"=>"Concepto            Original               Interés        Iva"],
                     ["font-family"=>"times" , "font-size"=>11 ],
                     ["text-x"=>22 , "text-y"=>74,"text"=>utf8_encode($row["INMUEBLE_CALLE"]." Nro:".$row["INMUEBLE_NRO"])],
                     ["text-x"=>22 , "text-y"=>79,"text"=>utf8_encode($row["INMUEBLE_PISO"])],
@@ -1024,6 +1334,9 @@ pkg_convenios.datos_cuota(
                     ["multi-x"=>3 , "multi-y"=>132,"multi-text"=>utf8_encode($row["TELEFONO"]),
                     "multi-al"=>"L","multi-w"=>80,"multi-h"=>10],
 
+                    ($original==="S") ?
+                        ["multi-x"=>3 , "multi-y"=>140,"multi-text"=>utf8_encode($comentario),
+                        "multi-al"=>"L","multi-w"=>100,"multi-h"=>60] : [] ,
                     ["font-family"=>"times" , "font-size"=>12, "font-style"=>"B" ],
                     ["text-x"=>108 , "text-y"=>132,"text"=>"Importe IVA"],
                     ["text-x"=>108 , "text-y"=>136,"text"=>"Ley Nacional N° 25413"],
@@ -1037,6 +1350,32 @@ pkg_convenios.datos_cuota(
                     ["font-family"=>"times" , "font-size"=>8, "font-style"=>"BI" ],
                     ["text-x"=>174 , "text-y"=>192,"text"=>"Fecha emisión ".$row["FECHA_EMISION_TXT"]],
                 ];
+
+            if($original==="S"){
+                $estado_ant = "Fecha Estado Anterior: $cp_fecha_lect_ant Est. Anterior: $cp_estado_ant";
+                $estado_act = "Fecha Estado Actual: $cp_fecha_lect_act  Est. Actual: $cp_estado_act";
+                $prox_vto = "Fecha Próximo Vto: $cp_prox_vto  m3 Consumo: $cp_consumo";
+                $promedio = "Promedio Medidor m3: $cp_promedio";
+                $cons_ba = "Consumo Bimestre Anterior: $cp_cons_per_ant";
+                $cons_baa = "Consumo Bimestre Año Anterior: $cp_cons_anio_ant";
+
+
+                $data = array_merge($data,[                    
+                    ["font-family"=>"times" , "font-size"=>10, "font-style"=>"" ],                    
+                    ["multi-x"=>5 , "multi-y"=>93,"multi-text"=>$estado_ant,
+                    "multi-al"=>"L","multi-w"=>100,"multi-h"=>9],                
+                    ["multi-x"=>5 , "multi-y"=>98,"multi-text"=>$estado_act,
+                    "multi-al"=>"L","multi-w"=>100,"multi-h"=>9],                
+                    ["multi-x"=>5 , "multi-y"=>103,"multi-text"=>$prox_vto,
+                    "multi-al"=>"L","multi-w"=>100,"multi-h"=>9],                
+                    ["multi-x"=>5 , "multi-y"=>108,"multi-text"=>$promedio,
+                    "multi-al"=>"L","multi-w"=>100,"multi-h"=>9],                
+                    ["multi-x"=>5 , "multi-y"=>113,"multi-text"=>$cons_ba,
+                    "multi-al"=>"L","multi-w"=>100,"multi-h"=>9],                
+                    ["multi-x"=>5 , "multi-y"=>118,"multi-text"=>$cons_baa,
+                    "multi-al"=>"L","multi-w"=>100,"multi-h"=>9],                
+                  ]);
+            }
 
             $data = array_merge($data,[                    
                     ["font-family"=>"times" , "font-size"=>11 ],
@@ -1087,13 +1426,23 @@ pkg_convenios.datos_cuota(
         $iva =0;
 
         $x = 105;
-        $y = 78;
+        if($original==="N"){
+            $y = 78;
+            $data = array_merge($data,[
+                    ["font-family"=>"times" , "font-size"=>12 ],
+                    ["text-x"=>121 , "text-y"=>74,"text"=>"Concepto            Original               Interés        Iva"],
+                ]);
+
+        }
+        else{
+            $y = 73;
+        }
         $data = array_merge($data,[                    
                     ["font-family"=>"courier" , "font-size"=>9 ],
                 ]);
-
         foreach ($filasDerecha as $key => $fila) {
-            $data = array_merge($data,[                    
+            if($original==="N"){
+                $data = array_merge($data,[                    
                     ["multi-x"=>$x , "multi-y"=>$y,"multi-text"=>utf8_encode($fila["CONCEPTO"]),
                     "multi-al"=>"L","multi-w"=>40,"multi-h"=>9],                
                     ["multi-x"=>$x+40 , "multi-y"=>$y,"multi-text"=>$fila["CAPITAL"],
@@ -1102,7 +1451,16 @@ pkg_convenios.datos_cuota(
                     "multi-al"=>"R","multi-w"=>15,"multi-h"=>9],                
                     ["multi-x"=>$x+79 , "multi-y"=>$y,"multi-text"=>$fila["IVA"],
                     "multi-al"=>"R","multi-w"=>15,"multi-h"=>9],                
-            ]);
+                ]);
+            }else{
+                $data = array_merge($data,[ 
+                    ["multi-x"=>$x , "multi-y"=>$y,"multi-text"=>utf8_encode($fila["CONCEPTO"]),
+                    "multi-al"=>"L","multi-w"=>75,"multi-h"=>9],                
+                    ["multi-x"=>$x+80 , "multi-y"=>$y,"multi-text"=>$fila["CAPITAL"],
+                    "multi-al"=>"R","multi-w"=>22,"multi-h"=>9],                
+                ]);                
+            }
+
             $y = $y + 5;
             $iva += $fila["IVA"];
         }
