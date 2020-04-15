@@ -27,13 +27,6 @@
 												"usuario1" =>"CAMBIAR",
 											]											
 										]  ,									
-								/*	// Autenticación con token JWT de Firebase
-									"firebase" =>[ 
-										"path"=>"/servicios_jwt",
-										"projectId"=>"proyecto de firebase",
-										"keyCache"=>__DIR__.'/cache',
-										"timeoutCache"=>3600,					
-										] */ ],
 				// Indicar con que sistema se conecta
 				"sistema" => "demo"
 			]
