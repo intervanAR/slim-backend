@@ -581,7 +581,9 @@ pkg_convenios.datos_cuota(
         foreach ($facturas as $key => $factura) {
         	$comprobantes[]=["id_comprobante"=> $factura["ID_EMPRESA"]."-".$factura["ID_SUCURSAL"]."-".$factura["NRO_FACTURA"]."-".$factura["COD_IVA"],
         					"total"=>$factura["IMPORTE_1VTO"]+$factura["IVA_1VTO"]+$factura["LEY25413"],
-        					"fecha_vto"=>$factura["FECHA_1VTO"]];
+        					"fecha_vto"=>$factura["FECHA_1VTO"],
+                            "descripcion"=>"Factura ".$factura["ID_EMPRESA"]."-".$factura["COD_IVA"]."-".$factura["NRO_FACTURA"]
+                        ];
         	$total = $total+$factura["IMPORTE_1VTO"]+$factura["IVA_1VTO"]+$factura["LEY25413"];        	
         }
 		$database->pdo->commit();
@@ -683,9 +685,9 @@ pkg_convenios.datos_cuota(
     }
 
 
-    public function crear_operacion_pago($comprobantes){
+    public function crear_operacion_pago($parametros){
     try{
-
+        $comprobantes = $parametros["comprobantes"];
         $transaccion=false;
         // Recorrer facturas y sumarlas
         // [{"id":"1-0-41"},{"id":"1-0-54"},{"id":"1-0-42"
@@ -723,14 +725,14 @@ pkg_convenios.datos_cuota(
             $logger->debug( "crear_operacion_pago error ".print_r($sth->errorInfo(),true));
             $transaccion=false;
             $database->pdo->rollback();
-            return "crear_operacion_pago error ".print_r($sth->errorInfo(),true);
+            return array("rta" => "crear_operacion_pago error SQL", 'id_operacion_pago' => '');
         }
 
         if( "OK" !==$rta ){
             $logger->debug( "crear_operacion_pago buscar liquidacion error ".$rta);
             $transaccion=false;
             $database->pdo->rollback();
-            return "crear_operacion_pago buscar liquidacion error ".$rta;
+            return array("rta" => "crear_operacion_pago buscar liquidacion error ".$rta, 'id_operacion_pago' => '');
         }
 
         $total = 0;
@@ -738,7 +740,6 @@ pkg_convenios.datos_cuota(
         $id_operaciones = []; // Se retornarán todos los cobros generados
 
         foreach ($comprobantes as $key => $factura){
-
             list($id_empresa,$id_sucursal,$nro_factura,$cod_iva)= preg_split("/-/",$factura["id_comprobante"]);
 
             $sth = $database->pdo->prepare("begin :rta := pkg_backend.agregar_pago ( 
@@ -758,6 +759,7 @@ pkg_convenios.datos_cuota(
 
             $rta = "";
             $id_cobro_factura = 0;
+            $imp_fac = $factura["importe"];
             $sth->bindParam(':id_empresa_liq', $id_empresa_liq, \PDO::PARAM_INT);
             $sth->bindParam(':id_sucursal_liq', $id_sucursal_liq, \PDO::PARAM_INT);
             $sth->bindParam(':id_recaudador', $id_recaudador, \PDO::PARAM_INT);
@@ -767,7 +769,7 @@ pkg_convenios.datos_cuota(
             $sth->bindParam(':id_sucursal', $id_sucursal, \PDO::PARAM_INT);
             $sth->bindParam(':cod_iva', $cod_iva, \PDO::PARAM_INT);
             $sth->bindParam(':nro_factura', $nro_factura, \PDO::PARAM_INT);
-            $sth->bindParam(':importe', $factura["importe"], \PDO::PARAM_INT);
+            $sth->bindParam(':importe', $imp_fac , \PDO::PARAM_STR);
             $sth->bindParam(':id_cobro_factura', $id_cobro_factura, \PDO::PARAM_INT || \PDO::PARAM_INPUT_OUTPUT ,1000 );
 
             $sth->bindParam(':rta', $rta, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,1000 );
@@ -776,14 +778,14 @@ pkg_convenios.datos_cuota(
                 $logger->debug( "crear_operacion_pago agregar_pago ".print_r($sth->errorInfo(),true));
                 $transaccion=false;
                 $database->pdo->rollback();
-                return "crear_operacion_pago agregar_pago ".print_r($sth->errorInfo(),true);
+                return array("rta" => "crear_operacion_pago agregar_pago error SQL", 'id_operacion_pago' => '');
             }
 
             if( "OK" !==$rta ){
                 $logger->debug( "crear_operacion_pago agregar_pago error ".$rta);
                 $transaccion=false;
                 $database->pdo->rollback();
-                return "crear_operacion_pago agregar_pago error ".$rta;
+                return array("rta" => "crear_operacion_pago agregar_pago error".$rta, 'id_operacion_pago' => '');
             }
             $id_operaciones[] = $id_empresa."-".$id_cobro_factura;
 
@@ -860,7 +862,6 @@ pkg_convenios.datos_cuota(
         $consulta = new Factura(SlimBackend::Backend());
         $database = $logger = $consulta->db;
         $logger = $consulta->logger; 
-        $logger->debug( "get_facturas:".json_encode($filtro));
 
         $cuentas=null;
         if( isset($filtro["cuentas"])){

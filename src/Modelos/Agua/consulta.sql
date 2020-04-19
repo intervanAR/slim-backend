@@ -107,3 +107,66 @@ AND  pkg_facturacion.zona_factura2(id_empresa,
                                                           USUARIO) = 'DER'
 and de_donde ='FAC'
 order by orden
+
+
+  pkg_facturacion.generar_renglones2(:p_id_empresa
+  ,:p_id_sucursal
+  ,null--p_cod_iva
+  ,:p_conjunto_factura); 
+  
+  
+select all 
+id_empresa
+,id_sucursal
+,cod_iva
+,nro_factura
+,concepto concepto
+,capital capital
+,interes interes
+,iva iva
+,decode(concepto,'Créd/Desc/Bonif',iva,0) iva_credito
+,decode(concepto,'Créd/Desc/Bonif',0,iva) iva_debito
+,orden  orden 
+,total total
+,neto_int_2_vto neto_int_2_vto
+,iva_int_2_vto iva_int_2_vto
+,total_2_vto total_2_vto
+from tmp_deuda2
+where USUARIO =USERENV('sessionid')
+AND  pkg_facturacion.zona_factura2(id_empresa,
+                                                          id_sucursal,
+                                                          cod_iva,
+                                                          nro_factura,
+                                                          orden,
+                                                          USUARIO) = 'DER'
+and de_donde ='FAC'
+order by orden
+
+
+
+select all id_empresa 
+,id_sucursal
+,cod_iva
+,nro_factura
+,concepto concepto1
+,capital capital1
+,interes interes1
+,iva iva2
+,decode(concepto,'Créd/Desc/Bonif',iva,0) iva_credito2
+,decode(concepto,'Créd/Desc/Bonif',0,iva) iva_debito2
+,orden  orden1
+,total total1
+,neto_int_2_vto neto_int_2_vto1
+,iva_int_2_vto iva_int_2_vto1
+,total_2_vto total_2_vto1
+
+from tmp_deuda2
+where USUARIO =USERENV('sessionid')
+AND  pkg_facturacion.zona_factura2(id_empresa,
+                                                          id_sucursal,
+                                                          cod_iva,
+                                                          nro_factura,
+                                                          orden,
+                                                          USUARIO)  = 'IZQ'
+and de_donde ='FAC'
+order by orden

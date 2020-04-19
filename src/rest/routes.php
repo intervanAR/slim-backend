@@ -32,7 +32,7 @@ function moveUploadedFile($directory, UploadedFile $uploadedFile)
 
 function array_a_utf8($datos){
 		if (is_string($datos)) {
-			return utf8_encode($datos);
+			return mb_detect_encoding($datos, 'UTF-8',true) ? $datos : utf8_encode($datos);
 		}
 		if (!is_array($datos)) {
 			return $datos;
@@ -820,6 +820,7 @@ $app->Delete('/servicios/facturaElectronica', function (Request $request, Respon
 $app->Post('/servicios/crear_operacion_pago', function (Request $request, Response $response, array $args) {
 
 	$this->logger->debug('/servicios/crear_operacion_pago:'.$request->getBody()->getContents());
+
 	$parametros = $request->getParsedBody();
 
 	$facturas= $this->sistema->crear_operacion_pago($parametros);
@@ -1012,7 +1013,7 @@ $app->Post('/servicios/consulta_facturas', function (Request $request, Response 
 	$myresponse = $response->withAddedHeader('Content-Type', 'application/json')->
 							withAddedHeader('Cantidad-Registros', "$cantidad");			
 
-	$myresponse->write(json_encode($facturas));
+	$myresponse->write(json_encode(array_a_utf8($facturas)));
     return $myresponse;
 });
 
