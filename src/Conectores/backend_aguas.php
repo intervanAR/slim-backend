@@ -29,7 +29,8 @@ class backend_aguas implements backend_servicio
         	$condicion["CUENTAS.CUENTA"] = $filtro["nro"];
         }elseif ( isset($filtro) &&
              isset($filtro["nro_documento"]) ) {
-            $condicion["PERSONAS.NRO_DOC"] = $filtro["nro_documento"];
+            $condicion["OR"] = [ "PERSONAS.NRO_DOC" => $filtro["nro_documento"],
+                                   "PERSONAS.CUIT" => $filtro["nro_documento"]  ] ;
         }
 
 /*
