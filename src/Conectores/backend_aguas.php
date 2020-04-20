@@ -127,8 +127,8 @@ class backend_aguas implements backend_servicio
         $mensaje_error = "";
 
 
-        $deuda = array();
-        $prox = array();
+        $deuda = [];
+        $prox = [];
 
         //
         // Recorrer cuentas pasadas como parametros
@@ -274,7 +274,7 @@ class backend_aguas implements backend_servicio
                 				"per_desc1"=>"",
                 				"per_desc2"=>"",
                 				"deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$deu["TIPO_IVA"]."-".$deu["ID_DEUDA"],
-                				"deu_desc1" => $concepto." Vto:".substr($deu["deu_vto"],8,2)."/".substr($deu["deu_vto"],5,2)."/".substr($deu["deu_vto"],0,4),
+                				"deu_desc1" => $concepto." V:".substr($deu["deu_vto"],8,2)."/".substr($deu["deu_vto"],5,2)."/".substr($deu["deu_vto"],0,4),
                 				"deu_desc2" => "",
                 				"deu_vto"=>$deu["deu_vto"],
                 				"deu_capital"=>$neto+$iva,
@@ -297,7 +297,7 @@ class backend_aguas implements backend_servicio
                 				"per_desc1"=>"",
                 				"per_desc2"=>"",
                 				"deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$deu["TIPO_IVA"]."-".$deu["ID_DEUDA"],
-                				"deu_desc1" => $concepto." Vto:".substr($deu["deu_vto"],8,2)."/".substr($deu["deu_vto"],5,2)."/".substr($deu["deu_vto"],0,4),
+                				"deu_desc1" => $concepto." V:".substr($deu["deu_vto"],8,2)."/".substr($deu["deu_vto"],5,2)."/".substr($deu["deu_vto"],0,4),
                 				"deu_desc2" => "",
                 				"deu_vto"=>$deu["deu_vto"],
                 				"deu_capital"=>$neto+$iva,
@@ -420,7 +420,7 @@ pkg_convenios.datos_cuota(
                 				"per_desc1"=>"",
                 				"per_desc2"=>"",
                 				"deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$cta["COD_IVA"]."-".$cta["NRO_CONVENIO"]."-".$cta["NRO_CUOTA"],
-                				"deu_desc1" => "Cuota ".$cta["NRO_CUOTA"]." Conv.".$cta["NRO_CONVENIO"]." Vto:".substr($cta["deu_vto"],8,2)."/".substr($cta["deu_vto"],5,2)."/".substr($cta["deu_vto"],0,4),
+                				"deu_desc1" => "Cuota ".$cta["NRO_CUOTA"]." Conv.".$cta["NRO_CONVENIO"]." V:".substr($cta["deu_vto"],8,2)."/".substr($cta["deu_vto"],5,2)."/".substr($cta["deu_vto"],0,4),
                 				"deu_desc2" => "",
                 				"deu_vto"=>$cta["deu_vto"],
                 				"deu_capital"=>$neto_actualizado+$iva_actualizado,
@@ -443,7 +443,7 @@ pkg_convenios.datos_cuota(
                 				"per_desc1"=>"",
                 				"per_desc2"=>"",
                 				"deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$cta["COD_IVA"]."-".$cta["NRO_CONVENIO"]."-".$cta["NRO_CUOTA"],
-                				"deu_desc1" => "Cuota ".$cta["NRO_CUOTA"]." Conv.".$cta["NRO_CONVENIO"]." Vto:".substr($cta["deu_vto"],8,2)."/".substr($cta["deu_vto"],5,2)."/".substr($cta["deu_vto"],0,4),
+                				"deu_desc1" => "Cuota ".$cta["NRO_CUOTA"]." Conv.".$cta["NRO_CONVENIO"]." V:".substr($cta["deu_vto"],8,2)."/".substr($cta["deu_vto"],5,2)."/".substr($cta["deu_vto"],0,4),
                 				"deu_desc2" => "",
                 				"deu_vto"=>$cta["deu_vto"],
                 				"deu_capital"=>$neto_actualizado+$iva_actualizado,
