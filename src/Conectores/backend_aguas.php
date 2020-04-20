@@ -145,6 +145,7 @@ class backend_aguas implements backend_servicio
             			"[><]CALLES"=>["INMUEBLE_COD_CALLE"=>"COD_CALLE" ],
             			"[><]LOCALIDADES"=>["COD_LOCALIDAD"=>"COD_LOCALIDAD",
             								"COD_PROVINCIA"=>"COD_PROVINCIA" ],
+                        "[><]TIPOS_SERVICIOS"=>["CUENTAS.TIPO_SERVICIO"=>"TIPO_SERVICIO" ],
         				];
             $cta_campos = ["CUENTAS.ID_EMPRESA",
             			"CUENTAS.ID_SUCURSAL",
@@ -152,6 +153,7 @@ class backend_aguas implements backend_servicio
             			"PERSONAS.ID_PERSONA",
                         "PERSONAS.APELLIDO_NOMBRE(RESPONSABLE)",
                         "CALLES.DESCRIPCION(DESC_CALLE)",
+                        "TIPOS_SERVICIOS.DESCRIPCION(DESC_SERVICIO)",                        
                         "INMUEBLE_NRO",
                         "INMUEBLE_PISO",
                         "INMUEBLE_DTO",
@@ -266,7 +268,7 @@ class backend_aguas implements backend_servicio
                 		( isset($cta_datos['INMUEBLE_DTO']) ? " ".$cta_datos['INMUEBLE_DTO'] : "" ) .
                 		( isset($cta_datos['DESC_LOCALIDAD']) ? " ".$cta_datos['DESC_LOCALIDAD'] : "" ),	
                 				"imp_id" =>"1",
-                				"imp_desc1"=>"Servicio",
+                				"imp_desc1"=>$cta_datos["DESC_SERVICIO"],
                 				"imp_desc2"=>"",
                 				"per_id"=>$deu["deu_vto"],
                 				"per_desc1"=>"",
@@ -289,7 +291,7 @@ class backend_aguas implements backend_servicio
                 		( isset($cta_datos['INMUEBLE_DTO']) ? " ".$cta_datos['INMUEBLE_DTO'] : "" ) .
                 		( isset($cta_datos['DESC_LOCALIDAD']) ? " ".$cta_datos['DESC_LOCALIDAD'] : "" ),	
                 				"imp_id" =>"1",
-                				"imp_desc1"=>"Servicio",
+                                "imp_desc1"=>$cta_datos["DESC_SERVICIO"],
                 				"imp_desc2"=>"",
                 				"per_id"=>$deu["deu_vto"],
                 				"per_desc1"=>"",
@@ -486,7 +488,6 @@ pkg_convenios.datos_cuota(
         
         if(isset($deuda) && ( $tipoDeuda === "deuda" || $tipoDeuda === "todo"))
             $array_rta["deuda"]=$deuda;
-        	print_r($deuda,true);
         if(isset($prox) && ( $tipoDeuda === "prox" || $tipoDeuda === "todo"))
             $array_rta["prox"]=$prox;
 

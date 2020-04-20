@@ -431,7 +431,7 @@ $app->post('/servicios/cuentas_x_objetos', function (Request $request, Response 
 
    $app->post('/servicios/consulta_deuda', function (Request $request, Response $response, array $args) {
 
-			$this->logger->debug('/servicios/cuentas_x_usuario:'.$request->getBody()->getContents());
+			$this->logger->debug('/servicios/consulta_deuda:'.$request->getBody()->getContents());
 			
 			$parametros =  $request->getParsedBody(); 
 
@@ -442,7 +442,7 @@ $app->post('/servicios/cuentas_x_objetos', function (Request $request, Response 
 			$myresponse = $response->withAddedHeader('Content-Type', 'application/json')->
 									withAddedHeader('Cantidad-Registros', "$cantidad");			
 
-			$myresponse->write(json_encode($datos));
+			$myresponse->write(json_encode(array_a_utf8($datos)));
 		    return $myresponse;
 			}
 	);
