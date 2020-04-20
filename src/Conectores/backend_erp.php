@@ -115,8 +115,9 @@ class backend_erp implements backend_servicio
                    "PERSONAS.NOMBRE(cont_desc1)",
                    "PERSONAS.NOMBRE",
                    "FACTURAS_CLIENTE.FECHA_GENERACION(deu_vto)",
-                   "FACTURAS_CLIENTE.TIPO_FACTURA",
-                   "FACTURAS_CLIENTE.NRO_FACTURA"];
+                   "TIPO_FACTURA"=>\Medoo\Medoo::raw("DECODE(FACTURAS_CLIENTE.TIPO_FACTURA,'Z','C',FACTURAS_CLIENTE.TIPO_FACTURA)"),
+                   "NRO_FACTURA"=>\Medoo\Medoo::raw("TO_CHAR(MOD(FACTURAS_CLIENTE.NRO_FACTURA,10000000),'00000000')")
+                 ];
 
         $condicion["FACTURAS_CLIENTE.ESTADO"]=["CON","PAR"];
         $condicion["CLIENTES.CUIT"]=$nro_cuit;
