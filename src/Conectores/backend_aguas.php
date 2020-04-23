@@ -884,10 +884,10 @@ pkg_convenios.datos_cuota(
                              END \"fecha_1vto\",
                              CASE
                                 WHEN fecha_1vto >= TRUNC (SYSDATE)
-                                   THEN importe_1vto + ley25413
+                                   THEN importe_1vto + ley25413 + iva_1vto
                                 WHEN fecha_2vto >= TRUNC (SYSDATE)
-                                   THEN importe_2vto + ley25413_2
-                                ELSE importe_1vto + ley25413
+                                   THEN importe_2vto + ley25413_2 + iva_2vto
+                                ELSE importe_1vto + ley25413 + iva_1vto
                              END \"importe_1vto\",
                              a.tipo_servicio tipo, 
                              b.descripcion \"desc_tipo_servicio\",
