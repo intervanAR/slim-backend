@@ -21,6 +21,8 @@
 		$setting = $c->get('settings')['sistema'];
         if ($setting === 'gestionar') {
             $backend = new \Backend\Conectores\backend_gestionar();
+		} elseif ($setting === 'arsa') {
+            $backend = new \Backend\Conectores\backend_arsa();
 		} elseif ($setting === 'aguas') {
             $backend = new \Backend\Conectores\backend_aguas();
         } elseif ($setting === 'creditos') {

@@ -35,7 +35,10 @@ class ReportePDF extends \TCPDF {
         $this->setPageMark();
     }
 
-
+	public function setImg($img_bk) 
+	{
+		$this->img_file = $img_bk;
+	}
 	public function __construct($img_bk,$report_w,$report_h,$orientation='P', $unit='mm', $format='A4', $unicode=true, $encoding='UTF-8', $diskcache=false, $pdfa=false) {
 		parent::__construct($orientation, $unit, $format, $unicode, $encoding, $diskcache, $pdfa);
 		$this->img_file = $img_bk;
@@ -57,7 +60,7 @@ class ReportePDF extends \TCPDF {
 		$this->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
 
 		// set margins
-		$this->SetMargins(PDF_MARGIN_LEFT, PDF_MARGIN_TOP, PDF_MARGIN_RIGHT);
+		$this->SetMargins(0, 0, 0);
 		$this->SetHeaderMargin(0);
 		$this->SetFooterMargin(0);
 
@@ -65,7 +68,7 @@ class ReportePDF extends \TCPDF {
 		$this->setPrintFooter(false);
 
 		// set auto page breaks
-		$this->SetAutoPageBreak(TRUE, PDF_MARGIN_BOTTOM);
+		$this->SetAutoPageBreak(TRUE, 0);
 
 		// set image scale factor
 		$this->setImageScale(PDF_IMAGE_SCALE_RATIO);
