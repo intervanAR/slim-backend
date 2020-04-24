@@ -900,9 +900,7 @@ pkg_convenios.datos_cuota(
                                 ELSE 'N'
                              END \"pagar\"
                         FROM facturas a, tipos_servicios b
-                       WHERE a.id_empresa = 1
-                         AND a.id_sucursal = 1
-                         AND a.tipo_servicio = b.tipo_servicio
+                       WHERE a.tipo_servicio = b.tipo_servicio
                          AND pkg_facturacion.factura_original (a.id_empresa,
                                                                a.id_sucursal,
                                                                a.cod_iva,
