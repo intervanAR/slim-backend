@@ -13,6 +13,393 @@ use Backend\Modelos\ReportePDF;
 
 class backend_arsa extends backend_aguas
 {
+
+	    public function consulta_deuda($parametros){
+        $consulta = new Deudas(SlimBackend::Backend());
+        $cuotas = new CuotasConvenio(SlimBackend::Backend());
+        $logger = $consulta->logger;
+        $database = $consulta->db;
+
+       	// Fecha actual para comparar si es deuda o prox vto.
+        $hoy = date("Y-m-d")." 24:59:59";
+
+        if( isset($parametros['tipoDeuda']))
+            $tipoDeuda= $parametros['tipoDeuda'];
+        else
+            $tipoDeuda='todo';
+
+        $mensaje_error = "";
+
+
+        $deuda = [];
+        $prox = [];
+
+        //
+        // Recorrer cuentas pasadas como parametros
+        //
+        foreach ($parametros["cuentas"] as $idx => $cuenta) {
+
+        	//
+        	// Consultar datos de la cuenta
+        	//
+            $cta_consulta = new Cuentas(SlimBackend::Backend());
+
+
+            $cta_join = ["[><]PERSONAS"=>["ID_PERSONA"=>"ID_PERSONA" ],
+            			"[><]CALLES"=>["INMUEBLE_COD_CALLE"=>"COD_CALLE" ],
+            			"[><]LOCALIDADES"=>["COD_LOCALIDAD"=>"COD_LOCALIDAD",
+            								"COD_PROVINCIA"=>"COD_PROVINCIA" ],
+                        "[><]TIPOS_SERVICIOS"=>["CUENTAS.TIPO_SERVICIO"=>"TIPO_SERVICIO" ],
+        				];
+            $cta_campos = ["CUENTAS.ID_EMPRESA",
+            			"CUENTAS.ID_SUCURSAL",
+            			"CUENTAS.CUENTA",
+            			"PERSONAS.ID_PERSONA",
+                        "PERSONAS.APELLIDO_NOMBRE(RESPONSABLE)",
+                        "CALLES.DESCRIPCION(DESC_CALLE)",
+                        "TIPOS_SERVICIOS.DESCRIPCION(DESC_SERVICIO)",                        
+                        "INMUEBLE_NRO",
+                        "INMUEBLE_PISO",
+                        "INMUEBLE_DTO",
+                        "LOCALIDADES.DESCRIPCION(DESC_LOCALIDAD)",
+                        "LOCALIDADES.CODIGO_POSTAL",
+                        "CUENTAS.ID_PERSONA"];
+
+            $cta_cond["CUENTAS.CUENTA"]=$cuenta["nro_cuenta"];
+
+            $cta_datos = $cta_consulta->selectj($cta_join,$cta_campos,$cta_cond)[0];
+
+            if( $cta_consulta->error() ){
+
+              $logger->debug('backend_aguas:consulta_deuda 1 '.print_r($cta_consulta->db->log(),true));
+              $logger->error( 'backend_aguas:consulta_deuda 1 '.print_r($cta_consulta->getDb()->error(),true));
+              return "backend_aguas:consulta_deuda 1 ".print_r($cta_consulta->getDb()->error()[1],true);              
+            }
+
+
+
+			$campos=[];
+			$condicion=[];
+        	//
+        	// Consultar las deudas
+        	//
+            $campos = ["DEUDAS.ID_DEUDA",
+              "DEUDAS.FECHA_VTO(deu_vto)",
+              "DEUDAS.TIPO_IVA"
+               ];
+            $condicion["DEUDAS.PAGADO"]="N";            
+            $condicion["DEUDAS.EN_CONVENIO"]="N";
+            $condicion["DEUDAS.ID_EMPRESA"]=$cta_datos["ID_EMPRESA"]; 
+            $condicion["DEUDAS.ID_SUCURSAL"]=$cta_datos["ID_SUCURSAL"]; 
+            $condicion["DEUDAS.CUENTA"]=$cta_datos["CUENTA"]; 
+
+           	if( $tipoDeuda==='deuda'){
+           		$condicion["DEUDAS.FECHA_VTO[<]"]= \Medoo\Medoo::raw('TRUNC(SYSDATE)+1');
+           	}elseif($tipoDeuda==='prox'){
+           		$condicion["DEUDAS.FECHA_VTO[>]"]= \Medoo\Medoo::raw('TRUNC(SYSDATE)');
+           	}
+            $datos =  $consulta->select($campos,$condicion);
+            if( $consulta->error() ){
+
+              $logger->debug('backend_aguas:consulta_deuda 2 '.print_r($cta_consulta->db->log(),true));
+              $logger->error( 'backend_aguas:consulta_deuda 2 '.print_r($cta_consulta->getDb()->error(),true));
+              return "backend_aguas:consulta_deuda 2 ".print_r($cta_consulta->getDb()->error()[1],true);              
+            }
+            
+            foreach ($datos as $key_deuda => $deu) {
+	        	//
+	        	// Consultar por cada deuda, los intereses de actualización y el concepto
+	        	//
+            	try{
+					$sth = $database->pdo->prepare("CALL PKG_DEUDA.DATOS_ID_DEUDA(:id_empresa
+						,:id_sucursal
+						,:cuenta
+						,:id_deuda
+						,SYSDATE
+						,:neto					
+						,:iva
+						,:interes_neto
+						,:iva_interes)");
+
+					$neto=0;
+					$iva=0;
+					$interes_neto=0;
+					$iva_interes=0;
+
+					$sth->bindParam(':id_empresa', $cta_datos["ID_EMPRESA"], \PDO::PARAM_INT);
+					$sth->bindParam(':id_sucursal', $cta_datos["ID_SUCURSAL"], \PDO::PARAM_INT);
+					$sth->bindParam(':cuenta', $cta_datos["CUENTA"], \PDO::PARAM_INT);
+					$sth->bindParam(':id_deuda', $deu["ID_DEUDA"], \PDO::PARAM_INT);
+					$sth->bindParam(':neto', $neto, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+					$sth->bindParam(':iva', $iva, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+					$sth->bindParam(':interes_neto', $interes_neto, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+					$sth->bindParam(':iva_interes', $iva_interes, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT,100 );
+
+					if( !$sth->execute()  ){
+						$logger->debug( "consulta_deuda DATOS_ID_DEUDA error".print_r($sth->errorInfo(),true));
+						return "consulta_deuda DATOS_ID_DEUDA error".print_r($sth->errorInfo(),true);
+					}
+
+
+					$sth = $database->pdo->prepare("begin :concepto := pkg_deuda.descripcion(:id_empresa
+		  			,:id_sucursal
+					,:cuenta
+					,:id_deuda);end;");
+
+					$concepto="";
+
+					$sth->bindParam(':id_empresa', $cta_datos["ID_EMPRESA"], \PDO::PARAM_INT);
+					$sth->bindParam(':id_sucursal', $cta_datos["ID_SUCURSAL"], \PDO::PARAM_INT);
+					$sth->bindParam(':cuenta', $cta_datos["CUENTA"], \PDO::PARAM_INT);
+					$sth->bindParam(':id_deuda', $deu["ID_DEUDA"], \PDO::PARAM_INT);
+					$sth->bindParam(':concepto', $concepto, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+
+					if( !$sth->execute() ){
+						$logger->debug( "consulta_deuda DESCRIPCION_DEUDA error".print_r($sth->errorInfo(),true));
+						return "consulta_deuda DESCRIPCION_DEUDA error".print_r($sth->errorInfo(),true);
+					}
+
+		        	//
+		        	// Verificar si va en proximos vencimientos o en deudas
+		        	//
+					if( $hoy >= $deu["deu_vto"] ){
+						$deuda[] = ["cont_id"=> $cta_datos["ID_PERSONA"],
+								"cont_desc1"=> $cta_datos["RESPONSABLE"],
+								"cont_desc2"=> "",
+								"cue_id"=> $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"],
+								"cue_desc1"=> $cta_datos["CUENTA"]." ".(isset($cuenta["alias_cuenta"]) ? $cuenta["alias_cuenta"] : $cta_datos["RESPONSABLE"]),
+								"cue_desc2"=>  $cta_datos['DESC_CALLE']." ".$cta_datos['INMUEBLE_NRO'].
+                		( isset($cta_datos['INMUEBLE_PISO']) ? " ".$cta_datos['INMUEBLE_PISO'] : "" ) .
+                		( isset($cta_datos['INMUEBLE_DTO']) ? " ".$cta_datos['INMUEBLE_DTO'] : "" ) .
+                		( isset($cta_datos['DESC_LOCALIDAD']) ? " ".$cta_datos['DESC_LOCALIDAD'] : "" ),	
+                				"imp_id" =>"1",
+                				"imp_desc1"=>$cta_datos["DESC_SERVICIO"],
+                				"imp_desc2"=>"",
+                				"per_id"=>$deu["deu_vto"],
+                				"per_desc1"=>"",
+                				"per_desc2"=>"",
+                				"deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$deu["TIPO_IVA"]."-".$deu["ID_DEUDA"],
+                				"deu_desc1" => $concepto." V:".substr($deu["deu_vto"],8,2)."/".substr($deu["deu_vto"],5,2)."/".substr($deu["deu_vto"],0,4),
+                				"deu_desc2" => "",
+                				"deu_vto"=>$deu["deu_vto"],
+                				"deu_capital"=>$neto+$iva,
+                				"deu_recargo"=>($interes_neto+$iva_interes)
+								];
+					}else{
+						$prox[] = ["cont_id"=> $cta_datos["ID_PERSONA"],
+								"cont_desc1"=> $cta_datos["RESPONSABLE"],
+								"cont_desc2"=> "",
+								"cue_id"=> $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"],
+								"cue_desc1"=> $cta_datos["CUENTA"]." ".(isset($cuenta["alias_cuenta"]) ? $cuenta["alias_cuenta"] : $cta_datos["RESPONSABLE"]),
+								"cue_desc2"=>  $cta_datos['DESC_CALLE']." ".$cta_datos['INMUEBLE_NRO'].
+                		( isset($cta_datos['INMUEBLE_PISO']) ? " ".$cta_datos['INMUEBLE_PISO'] : "" ) .
+                		( isset($cta_datos['INMUEBLE_DTO']) ? " ".$cta_datos['INMUEBLE_DTO'] : "" ) .
+                		( isset($cta_datos['DESC_LOCALIDAD']) ? " ".$cta_datos['DESC_LOCALIDAD'] : "" ),	
+                				"imp_id" =>"1",
+                                "imp_desc1"=>$cta_datos["DESC_SERVICIO"],
+                				"imp_desc2"=>"",
+                				"per_id"=>$deu["deu_vto"],
+                				"per_desc1"=>"",
+                				"per_desc2"=>"",
+                				"deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$deu["TIPO_IVA"]."-".$deu["ID_DEUDA"],
+                				"deu_desc1" => $concepto." V:".substr($deu["deu_vto"],8,2)."/".substr($deu["deu_vto"],5,2)."/".substr($deu["deu_vto"],0,4),
+                				"deu_desc2" => "",
+                				"deu_vto"=>$deu["deu_vto"],
+                				"deu_capital"=>$neto+$iva,
+                				"deu_recargo"=>($interes_neto+$iva_interes)
+								];
+
+					}
+
+				}catch( Exception $e){
+					$logger->debug( "consulta_deuda Exception deuda:".$e->get_message() );
+				}
+			}
+
+			$campos=[];
+			$condicion=[];
+        	//
+        	// Consultar las cuotas de convenio
+        	//
+
+        	$join=["[><]CONVENIOS"=>["ID_EMPRESA"=>"ID_EMPRESA",
+        							 "ID_SUCURSAL"=>"ID_SUCURSAL",
+        							 "CUENTA"=>"CUENTA",
+        							 "NRO_CONVENIO"=>"NRO_CONVENIO"]];
+            $campos = ["CUOTAS_CONVENIO.NRO_CONVENIO",
+            			"CUOTAS_CONVENIO.NRO_CUOTA",
+              "CUOTAS_CONVENIO.FECHA_VTO(deu_vto)",
+              "CONVENIOS.COD_IVA"
+               ];
+            $condicion["CUOTAS_CONVENIO.PAGADA"]="N";            
+            $condicion["CUOTAS_CONVENIO.ID_EMPRESA"]=$cta_datos["ID_EMPRESA"]; 
+            $condicion["CUOTAS_CONVENIO.ID_SUCURSAL"]=$cta_datos["ID_SUCURSAL"]; 
+            $condicion["CUOTAS_CONVENIO.CUENTA"]=$cta_datos["CUENTA"]; 
+
+           	if( $tipoDeuda==='deuda'){
+           		$condicion["CUOTAS_CONVENIO.FECHA_VTO[<]"]= \Medoo\Medoo::raw('TRUNC(SYSDATE)+1');
+           	}elseif($tipoDeuda==='prox'){
+           		$condicion["CUOTAS_CONVENIO.FECHA_VTO[>]"]= \Medoo\Medoo::raw('TRUNC(SYSDATE)');
+           	}
+            $datos =  $cuotas->selectj($join,$campos,$condicion);
+            if( $consulta->error() ){
+
+              $logger->debug('backend_aguas:consulta_deuda 3 '.print_r($cta_consulta->db->log(),true));
+              $logger->error( 'backend_aguas:consulta_deuda 3 '.print_r($cta_consulta->getDb()->error(),true));
+              return "backend_aguas:consulta_deuda 3 ".print_r($cta_consulta->getDb()->error()[1],true);              
+            }
+            
+            foreach ($datos as $key_cta => $cta) {
+	        	//
+	        	// Consultar por cada deuda, los intereses de actualización y el concepto
+	        	//
+/*
+pkg_convenios.datos_cuota(
+                 :mc_cuotas.id_empresa
+                ,:mc_cuotas.id_sucursal
+                ,:mc_cuotas.cuenta
+                ,:mc_cuotas.nro_convenio
+                ,:mc_cuotas.nro_cuota
+                ,:mc_cuotas.fecha_actualizacion
+                ,:mc_cuotas.neto_actualizado
+                ,:mc_cuotas.iva_actualizado
+                ,v_interes_neto
+                ,v_interes_iva 
+                ,:mc_cuotas.iva_interes_actualizado);
+*/
+
+            	try{
+					$sth = $database->pdo->prepare("CALL pkg_convenios.datos_cuota(
+			                 :id_empresa
+			                ,:id_sucursal
+			                ,:cuenta
+			                ,:nro_convenio
+			                ,:nro_cuota
+			                ,SYSDATE
+			                ,:neto_actualizado
+			                ,:iva_actualizado
+			                ,:interes_neto
+			                ,:interes_iva 
+			                ,:iva_interes_actualizado)");
+
+					$neto_actualizado=0;
+					$iva_actualizado=0;
+					$interes_neto=0;
+					$interes_iva=0;
+					$iva_interes_actualizado=0;
+
+					$sth->bindParam(':id_empresa', $cta_datos["ID_EMPRESA"], \PDO::PARAM_INT);
+					$sth->bindParam(':id_sucursal', $cta_datos["ID_SUCURSAL"], \PDO::PARAM_INT);
+					$sth->bindParam(':cuenta', $cta_datos["CUENTA"], \PDO::PARAM_INT);
+					$sth->bindParam(':nro_convenio', $cta["NRO_CONVENIO"], \PDO::PARAM_INT);
+					$sth->bindParam(':nro_cuota', $cta["NRO_CUOTA"], \PDO::PARAM_INT);
+					$sth->bindParam(':neto_actualizado', $neto_actualizado, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+					$sth->bindParam(':iva_actualizado', $iva_actualizado, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+					$sth->bindParam(':interes_neto', $interes_neto, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT,100 );
+					$sth->bindParam(':interes_iva', $interes_iva, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT,100 );
+					$sth->bindParam(':iva_interes_actualizado', $iva_interes_actualizado, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT,100 );
+
+					if( !$sth->execute()  ){
+						$logger->debug( "consulta_deuda DATOS_CUOTA error".print_r($sth->errorInfo(),true));
+						return "consulta_deuda DATOS_CUOTA error".print_r($sth->errorInfo(),true);
+					}
+
+
+		        	//
+		        	// Verificar si va en proximos vencimientos o en deudas
+		        	//
+					if( $hoy >= $cta["deu_vto"] ){
+						$deuda[] = ["cont_id"=> $cta_datos["ID_PERSONA"],
+								"cont_desc1"=> $cta_datos["RESPONSABLE"],
+								"cont_desc2"=> "",
+								"cue_id"=> $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"],
+								"cue_desc1"=> $cta_datos["CUENTA"]." ".(isset($cuenta["alias_cuenta"]) ? $cuenta["alias_cuenta"] : $cta_datos["RESPONSABLE"]),
+								"cue_desc2"=>  $cta_datos['DESC_CALLE']." ".$cta_datos['INMUEBLE_NRO'].
+                		( isset($cta_datos['INMUEBLE_PISO']) ? " ".$cta_datos['INMUEBLE_PISO'] : "" ) .
+                		( isset($cta_datos['INMUEBLE_DTO']) ? " ".$cta_datos['INMUEBLE_DTO'] : "" ) .
+                		( isset($cta_datos['DESC_LOCALIDAD']) ? " ".$cta_datos['DESC_LOCALIDAD'] : "" ),	
+                				"imp_id" =>"2",
+                				"imp_desc1"=>"Cuotas Convenio",
+                				"imp_desc2"=>"",
+                				"per_id"=>$cta["deu_vto"],
+                				"per_desc1"=>"",
+                				"per_desc2"=>"",
+                				"deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$cta["COD_IVA"]."-".$cta["NRO_CONVENIO"]."-".$cta["NRO_CUOTA"],
+                				"deu_desc1" => "Cuota ".$cta["NRO_CUOTA"]." Conv.".$cta["NRO_CONVENIO"]." V:".substr($cta["deu_vto"],8,2)."/".substr($cta["deu_vto"],5,2)."/".substr($cta["deu_vto"],0,4),
+                				"deu_desc2" => "",
+                				"deu_vto"=>$cta["deu_vto"],
+                				"deu_capital"=>$neto_actualizado+$iva_actualizado,
+                				"deu_recargo"=>($interes_neto+$interes_iva+$iva_interes_actualizado)
+								];
+					}else{
+						$prox[] = ["cont_id"=> $cta_datos["ID_PERSONA"],
+								"cont_desc1"=> $cta_datos["RESPONSABLE"],
+								"cont_desc2"=> "",
+								"cue_id"=> $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"],
+								"cue_desc1"=> $cta_datos["CUENTA"]." ".(isset($cuenta["alias_cuenta"]) ? $cuenta["alias_cuenta"] : $cta_datos["RESPONSABLE"]),
+								"cue_desc2"=>  $cta_datos['DESC_CALLE']." ".$cta_datos['INMUEBLE_NRO'].
+                		( isset($cta_datos['INMUEBLE_PISO']) ? " ".$cta_datos['INMUEBLE_PISO'] : "" ) .
+                		( isset($cta_datos['INMUEBLE_DTO']) ? " ".$cta_datos['INMUEBLE_DTO'] : "" ) .
+                		( isset($cta_datos['DESC_LOCALIDAD']) ? " ".$cta_datos['DESC_LOCALIDAD'] : "" ),	
+                				"imp_id" =>"2",
+                				"imp_desc1"=>"Cuotas Convenio",
+                				"imp_desc2"=>"",
+                				"per_id"=>$cta["deu_vto"],
+                				"per_desc1"=>"",
+                				"per_desc2"=>"",
+                				"deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$cta["COD_IVA"]."-".$cta["NRO_CONVENIO"]."-".$cta["NRO_CUOTA"],
+                				"deu_desc1" => "Cuota ".$cta["NRO_CUOTA"]." Conv.".$cta["NRO_CONVENIO"]." V:".substr($cta["deu_vto"],8,2)."/".substr($cta["deu_vto"],5,2)."/".substr($cta["deu_vto"],0,4),
+                				"deu_desc2" => "",
+                				"deu_vto"=>$cta["deu_vto"],
+                				"deu_capital"=>$neto_actualizado+$iva_actualizado,
+                				"deu_recargo"=>($interes_neto+$interes_iva+$iva_interes_actualizado)
+								];
+
+					}
+
+				}catch( Exception $e){
+					$logger->debug( "consulta_deuda Exception:".$e->get_message() );
+				}
+            }
+
+        }
+
+    	//
+    	// Ordenar arreglos de todas las cuentas
+    	//
+        usort( $deuda, function($a, $b )  
+          { 
+            $res = strcasecmp($a["cont_desc1"],$b["cont_desc1"]);
+            if( $res) return $res;
+            $res = strcasecmp($a["cue_desc1"],$b["cue_desc1"]);
+            if( $res) return $res;
+            $res = strcasecmp($a["imp_desc1"],$b["imp_desc1"]);
+            if( $res) return $res;
+            $res = strcasecmp($a["per_desc1"],$b["per_desc1"]);
+            return strcasecmp($a["deu_vto"],$b["deu_vto"]);
+          });
+        usort( $prox, function($a, $b )  
+          { 
+            $res = strcasecmp($a["cont_desc1"],$b["cont_desc1"]);
+            if( $res) return $res;
+            $res = strcasecmp($a["cue_desc1"],$b["cue_desc1"]);
+            if( $res) return $res;
+            $res = strcasecmp($a["imp_desc1"],$b["imp_desc1"]);
+            if( $res) return $res;
+            $res = strcasecmp($a["per_desc1"],$b["per_desc1"]);
+            return strcasecmp($a["deu_vto"],$b["deu_vto"]);
+          });
+        $array_rta=array();
+        
+        if(isset($deuda) && ( $tipoDeuda === "deuda" || $tipoDeuda === "todo"))
+            $array_rta["deuda"]=$deuda;
+        if(isset($prox) && ( $tipoDeuda === "prox" || $tipoDeuda === "todo"))
+            $array_rta["prox"]=$prox;
+
+        return $array_rta;
+    }    
+
+
     public static function reporteFacturas($params) {
         
         if(!isset($params["p_cadena_facturas"]) && !isset($params["id_comprobante"])) return "";
@@ -382,7 +769,7 @@ class backend_arsa extends backend_aguas
             }
             $data =[
                     ["font-family"=>"times" , "font-size"=>14 ],
-                    ["text-x"=>128 , "text-y"=>9,"text"=>utf8_encode($row["APELLIDO_NOMBRE"])],
+                    ["text-x"=>128 , "text-y"=>12,"text"=>utf8_encode($row["APELLIDO_NOMBRE"])],
                     
                     ($original==="N") ?
                       ["text-x"=>140 , "text-y"=>63,"text"=>"LIQUIDACION DE DEUDA"] :
@@ -390,12 +777,12 @@ class backend_arsa extends backend_aguas
                     ,
 
                     ["font-family"=>"times" , "font-size"=>11 ],
-                    ["text-x"=>128 , "text-y"=>15,"text"=>utf8_encode($row["POSTAL_CALLE"])],
-                    ["text-x"=>128 , "text-y"=>20,"text"=>utf8_encode($row["POSTAL_PISO"])],
-                    ["text-x"=>128 , "text-y"=>25,"text"=>utf8_encode($row["POSTAL_DTO"])],
-                    ["text-x"=>128 , "text-y"=>30,"text"=>utf8_encode($row["LOCALIDAD"])],
-                    ["text-x"=>128 , "text-y"=>35,"text"=>utf8_encode($row["PROVINCIA"])],
-                    ["text-x"=>128 , "text-y"=>40,"text"=>utf8_encode($row["CODIGO_POSTAL"])],
+                    ["text-x"=>128 , "text-y"=>18,"text"=>utf8_encode($row["POSTAL_CALLE"])],
+                    ["text-x"=>128 , "text-y"=>23,"text"=>utf8_encode($row["POSTAL_PISO"])],
+                    ["text-x"=>128 , "text-y"=>28,"text"=>utf8_encode($row["POSTAL_DTO"])],
+                    ["text-x"=>128 , "text-y"=>33,"text"=>utf8_encode($row["LOCALIDAD"])],
+                    ["text-x"=>128 , "text-y"=>38,"text"=>utf8_encode($row["PROVINCIA"])],
+                    ["text-x"=>128 , "text-y"=>43,"text"=>utf8_encode($row["CODIGO_POSTAL"])],
                     ["font-family"=>"times" , "font-size"=>10 ],
                     ["multi-x"=>160 , "multi-y"=>25,"multi-text"=>utf8_encode($row["IVA"]),
                     "multi-al"=>"C","muli-w"=>40,"multi-h"=>10],
