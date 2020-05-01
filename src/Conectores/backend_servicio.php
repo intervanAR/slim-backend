@@ -47,6 +47,8 @@ interface backend_servicio
 
     public function crear_operacion_pago($comprobantes);
 
+    public function confirmar_operacion_pago($id_operacion);
+
     public function anular_operacion_pago($id_operacion );
     
     public function consulta_deuda($parametros);

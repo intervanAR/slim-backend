@@ -837,6 +837,56 @@ $app->Post('/servicios/crear_operacion_pago', function (Request $request, Respon
 
 /** 
  * @OA\Post(
+		path="/backend/servicios/confirmar_operacion_pago",
+	   	tags={"Deudas Clientes"},
+       	summary="Anula una operación de pago ONLINE, posiblemente error en la operación con el gateway de pago ",
+       	@OA\RequestBody(
+       		request="Operacion",
+      		description="Id del Comprobante de operación generado con la opción crear_oepracion_pago",
+      		required=true,
+          	@OA\JsonContent(
+			    @OA\Property(property="id_operacion", 
+			    	type="string"),
+			    example = { "id_operacion":"14367"}
+			)
+       ),
+       @OA\Response(
+           response=200,
+           description = "Retorna OK o un mensaje de error",
+          	@OA\JsonContent(
+          		@OA\Property(property="rta", 
+          			type="string"),
+          		@OA\Property(property="id_operacion_pago", 
+          			type="string",
+          			description="Identificar de la operación en el sistema subyacente",
+          			example="345612"),
+          	)
+        )
+   )
+ */
+
+$app->Post('/servicios/confirmar_operacion_pago', function (Request $request, Response $response, array $args) {
+
+	$this->logger->debug('/servicios/confirmar_operacion_pago:'.$request->getBody()->getContents());
+
+	$parametros = $request->getParsedBody();
+	
+	$id_operacion = null;
+	if(isset($parametros["id_operacion"]))
+		$id_operacion=$parametros["id_operacion"];
+
+	$rta =$this->sistema->confirmar_operacion_pago($id_operacion);
+
+
+	$myresponse = $response->withAddedHeader('Content-Type', 'application/json');			
+
+	$myresponse->write(json_encode($rta));
+    return $myresponse;
+
+});
+
+/** 
+ * @OA\Post(
 		path="/backend/servicios/anular_operacion_pago",
 	   	tags={"Deudas Clientes"},
        	summary="Anula una operación de pago ONLINE, posiblemente error en la operación con el gateway de pago ",
@@ -884,7 +934,6 @@ $app->Post('/servicios/anular_operacion_pago', function (Request $request, Respo
     return $myresponse;
 
 });
-
 
 /** 
  * @OA\Post(

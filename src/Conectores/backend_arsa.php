@@ -14,6 +14,9 @@ use Backend\Modelos\ReportePDF;
 class backend_arsa extends backend_aguas
 {
 
+
+
+
 	    public function consulta_deuda($parametros){
         $consulta = new Deudas(SlimBackend::Backend());
         $cuotas = new CuotasConvenio(SlimBackend::Backend());

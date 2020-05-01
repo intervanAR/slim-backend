@@ -804,10 +804,61 @@ pkg_convenios.datos_cuota(
     }
     }
 
-    public function anular_operacion_pago($id_operacion){
+    public function confirmar_operacion_pago($id_operacion){
     try{
 
+        $transaccion=false;
+        // Recorrer facturas y sumarlas
+        // [{"id":"1-0-41"},{"id":"1-0-54"},{"id":"1-0-42"
+        $consulta = new DeudaTmp(SlimBackend::Backend());
+        $database = $consulta->db;
+        $logger = $consulta->logger; 
+        $database->pdo->beginTransaction();
+        $transaccion=true;
 
+        $logger->debug( "confirmar_operacion_pago ".print_r($id_operacion,true));
+
+        foreach ($id_operacion as $key => $operacion) {
+            # code...
+            list($id_empresa,$id_cobro_factura)= preg_split("/-/",$operacion);
+
+            $sth = $database->pdo->prepare("begin :rta := pkg_backend.confirmar_cobro (:id_empresa,
+                :id_cobro_factura);
+                end;");
+
+            $rta = "";
+            $sth->bindParam(':id_empresa', $id_empresa, \PDO::PARAM_INT);
+            $sth->bindParam(':id_cobro_factura', $id_cobro_factura, \PDO::PARAM_INT);
+            $sth->bindParam(':rta', $rta, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,1000 );
+
+            if( !$sth->execute()  ){
+                $logger->debug( "confirmar_operacion_pago".print_r($sth->errorInfo(),true));
+                $transaccion=false;
+                $database->pdo->rollback();
+                return "confirmar_operacion_pago".print_r($sth->errorInfo(),true);
+            }
+
+            if( "OK" !==$rta ){
+                $logger->debug( "confirmar_operacion_pago ".$rta);
+                $transaccion=false;
+                $database->pdo->rollback();
+                return "confirmar_operacion_pago".$rta;
+            }
+        }
+        $transaccion=false;
+        $database->pdo->commit();
+
+        return array("rta" => "OK");
+    } catch (Exception $e) {
+        if( $transaccion){
+            $database->pdo->rollback();            
+        }
+        return array("rta" => $e->get_mensaje());
+    }
+    }
+
+    public function anular_operacion_pago($id_operacion){
+    try{
 
         $transaccion=false;
         // Recorrer facturas y sumarlas
@@ -824,7 +875,7 @@ pkg_convenios.datos_cuota(
             # code...
             list($id_empresa,$id_cobro_factura)= preg_split("/-/",$operacion);
 
-            $sth = $database->pdo->prepare("begin :rta := pkg_cobros.anular_cobro (:id_empresa,
+            $sth = $database->pdo->prepare("begin :rta := pkg_backend.anular_cobro (:id_empresa,
                 :id_cobro_factura);
                 end;");
 
@@ -834,17 +885,17 @@ pkg_convenios.datos_cuota(
             $sth->bindParam(':rta', $rta, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,1000 );
 
             if( !$sth->execute()  ){
-                $logger->debug( "anular_operacion_pago anular".print_r($sth->errorInfo(),true));
-                $transaccion=false;
-                $database->pdo->rollback();
-                return "anular_operacion_pago anular".print_r($sth->errorInfo(),true);
+                $logger->debug( "anular_operacion_pago error".print_r($sth->errorInfo(),true));
+                //$transaccion=false;
+                //$database->pdo->rollback();
+                //return "anular_operacion_pago error".print_r($sth->errorInfo(),true);
             }
 
             if( "OK" !==$rta ){
-                $logger->debug( "anular_operacion_pago error ".$rta);
-                $transaccion=false;
-                $database->pdo->rollback();
-                return "anular_operacion_pago error ".$rta;
+                $logger->debug("anular_operacion_pago error ".$rta);
+                //$transaccion=false;
+                //$database->pdo->rollback();
+                //return "anular_operacion_pago error ".$rta;
             }
         }
         $transaccion=false;
