@@ -99,7 +99,7 @@ class backend_arsa extends backend_aguas
            	if( $tipoDeuda==='deuda'){
            		$condicion["DEUDAS.FECHA_VTO[<]"]= \Medoo\Medoo::raw('TRUNC(SYSDATE)+1');
            	}elseif($tipoDeuda==='prox'){
-           		$condicion["DEUDAS.FECHA_VTO[>]"]= \Medoo\Medoo::raw('TRUNC(SYSDATE)');
+           		$condicion["DEUDAS.FECHA_VTO[>]"]= \Medoo\Medoo::raw('TRUNC(SYSDATE)-60');
            	}
             $datos =  $consulta->select($campos,$condicion);
             if( $consulta->error() ){
@@ -156,7 +156,10 @@ class backend_arsa extends backend_aguas
 
                     $cupones = $sth->fetchAll()[0];
 
+                    $actualizar=true;
                     $accion = null;
+                    $cupon1 = false;
+                    $cupon2 = false;
                     if( isset($cupones["C1"]) && 
                         $cupones["C1"]!== null && 
                         $cupones["C1_PAGADA"]==="N" && 
@@ -169,20 +172,23 @@ class backend_arsa extends backend_aguas
                         $iva  = $cupones["C1_IVA"];
                         $interes_neto = 0;
                         $iva_interes = 0;
-                    }elseif( isset($cupones["C1"]) && 
+                        $actualizar = false;
+                        $cupon1 = true;
+                    }
+                    if( isset($cupones["C1"]) && 
                         $cupones["C1"]!== null && 
-                        $cupones["C1_PAGADA"]==="S" && 
                         $cupones["C2_PAGADA"]==="N" && 
                         $cupones["C2_VENCIDA"]==="N" ){
                         //
                         // Cupon1 pagadao, CUpon2 sin vencer => Es solo CUPON2
                         //
-                        $neto = $cupones["C2_NETO"];
-                        $iva  = $cupones["C2_IVA"];
-                        $interes_neto = 0;
-                        $iva_interes = 0;
+                        $neto2 = $cupones["C2_NETO"];
+                        $iva2  = $cupones["C2_IVA"];
                         $accion = "0-DEVC2-".$cupones["C2"];
-                    }else{
+                        $actualizar = false;
+                        $cupon2 = true;
+                    }
+                    if( $actualizar) {
     					$sth = $database->pdo->prepare("CALL PKG_DEUDA.DATOS_ID_DEUDA(:id_empresa
     						,:id_sucursal
     						,:cuenta
@@ -232,7 +238,8 @@ class backend_arsa extends backend_aguas
 		        	//
 		        	// Verificar si va en proximos vencimientos o en deudas
 		        	//
-					if( $hoy >= $deu["deu_vto"] ){
+					if( ($hoy >= $deu["deu_vto"] &&  !$cupon1 && !$cupon2) ||
+                        $cupon1) {
 						$deuda[] = ["cont_id"=> $cta_datos["ID_PERSONA"],
 								"cont_desc1"=> $cta_datos["RESPONSABLE"],
 								"cont_desc2"=> "",
@@ -248,15 +255,21 @@ class backend_arsa extends backend_aguas
                 				"per_id"=>$deu["deu_vto"],
                 				"per_desc1"=>"",
                 				"per_desc2"=>"",
-                				"deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$deu["TIPO_IVA"]."-".$deu["ID_DEUDA"] .
-                                    (isset($accion) ? "-".$accion : "" ),
+                				"deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$deu["TIPO_IVA"]."-".$deu["ID_DEUDA"] ,
                 				"deu_desc1" => $concepto." V:".substr($deu["deu_vto"],8,2)."/".substr($deu["deu_vto"],5,2)."/".substr($deu["deu_vto"],0,4),
                 				"deu_desc2" => "",
                 				"deu_vto"=>$deu["deu_vto"],
                 				"deu_capital"=>$neto+$iva,
                 				"deu_recargo"=>($interes_neto+$iva_interes)
 								];
-					}else{
+					}
+                    if( $hoy< $deu["deu_vto"] || $cupon2 ) {
+                        if( $cupon2){
+                            $neto = $neto2;
+                            $iva = $iva2;
+                            $interes_neto = 0;
+                            $iva_interes = 0;
+                        }
 						$prox[] = ["cont_id"=> $cta_datos["ID_PERSONA"],
 								"cont_desc1"=> $cta_datos["RESPONSABLE"],
 								"cont_desc2"=> "",
@@ -273,7 +286,7 @@ class backend_arsa extends backend_aguas
                 				"per_desc1"=>"",
                 				"per_desc2"=>"",
                 				"deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$deu["TIPO_IVA"]."-".$deu["ID_DEUDA"].
-                                    (isset($accion) ? "-".$accion :""),
+                                    (isset($accion) ? "-".$accion:""),
                 				"deu_desc1" => $concepto." V:".substr($deu["deu_vto"],8,2)."/".substr($deu["deu_vto"],5,2)."/".substr($deu["deu_vto"],0,4),
                 				"deu_desc2" => "",
                 				"deu_vto"=>$deu["deu_vto"],
