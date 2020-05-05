@@ -119,6 +119,9 @@ class backend_aguas implements backend_servicio
        	// Fecha actual para comparar si es deuda o prox vto.
         $hoy = date("Y-m-d")." 24:59:59";
 
+        $coef_ley25413 = 1.012;
+
+
         if( isset($parametros['tipoDeuda']))
             $tipoDeuda= $parametros['tipoDeuda'];
         else
@@ -277,8 +280,8 @@ class backend_aguas implements backend_servicio
                 				"deu_desc1" => $concepto." V:".substr($deu["deu_vto"],8,2)."/".substr($deu["deu_vto"],5,2)."/".substr($deu["deu_vto"],0,4),
                 				"deu_desc2" => "",
                 				"deu_vto"=>$deu["deu_vto"],
-                				"deu_capital"=>$neto+$iva,
-                				"deu_recargo"=>($interes_neto+$iva_interes)
+                				"deu_capital"=>round(($neto+$iva) * $coef_ley25413,2),
+                				"deu_recargo"=>round(($interes_neto+$iva_interes)* $coef_ley25413,2)
 								];
 					}else{
 						$prox[] = ["cont_id"=> $cta_datos["ID_PERSONA"],
@@ -300,8 +303,8 @@ class backend_aguas implements backend_servicio
                 				"deu_desc1" => $concepto." V:".substr($deu["deu_vto"],8,2)."/".substr($deu["deu_vto"],5,2)."/".substr($deu["deu_vto"],0,4),
                 				"deu_desc2" => "",
                 				"deu_vto"=>$deu["deu_vto"],
-                				"deu_capital"=>$neto+$iva,
-                				"deu_recargo"=>($interes_neto+$iva_interes)
+                				"deu_capital"=>round(($neto+$iva)* $coef_ley25413,2),
+                				"deu_recargo"=>round(($interes_neto+$iva_interes)* $coef_ley25413,2)
 								];
 
 					}
@@ -423,8 +426,8 @@ pkg_convenios.datos_cuota(
                 				"deu_desc1" => "Cuota ".$cta["NRO_CUOTA"]." Conv.".$cta["NRO_CONVENIO"]." V:".substr($cta["deu_vto"],8,2)."/".substr($cta["deu_vto"],5,2)."/".substr($cta["deu_vto"],0,4),
                 				"deu_desc2" => "",
                 				"deu_vto"=>$cta["deu_vto"],
-                				"deu_capital"=>$neto_actualizado+$iva_actualizado,
-                				"deu_recargo"=>($interes_neto+$iva_interes+$iva_interes_actualizado)
+                				"deu_capital"=>round(($neto_actualizado+$iva_actualizado)* $coef_ley25413,2),
+                				"deu_recargo"=>round(($interes_neto+$iva_interes+$iva_interes_actualizado)* $coef_ley25413,2)
 								];
 					}else{
 						$prox[] = ["cont_id"=> $cta_datos["ID_PERSONA"],
@@ -446,8 +449,8 @@ pkg_convenios.datos_cuota(
                 				"deu_desc1" => "Cuota ".$cta["NRO_CUOTA"]." Conv.".$cta["NRO_CONVENIO"]." V:".substr($cta["deu_vto"],8,2)."/".substr($cta["deu_vto"],5,2)."/".substr($cta["deu_vto"],0,4),
                 				"deu_desc2" => "",
                 				"deu_vto"=>$cta["deu_vto"],
-                				"deu_capital"=>$neto_actualizado+$iva_actualizado,
-                				"deu_recargo"=>($interes_neto+$iva_interes+$iva_interes_actualizado)
+                				"deu_capital"=>round(($neto_actualizado+$iva_actualizado)* $coef_ley25413,2),
+                				"deu_recargo"=>round(($interes_neto+$iva_interes+$iva_interes_actualizado) * $coef_ley25413,2)
 								];
 
 					}
