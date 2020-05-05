@@ -114,36 +114,104 @@ class backend_arsa extends backend_aguas
 	        	// Consultar por cada deuda, los intereses de actualización y el concepto
 	        	//
             	try{
-					$sth = $database->pdo->prepare("CALL PKG_DEUDA.DATOS_ID_DEUDA(:id_empresa
-						,:id_sucursal
-						,:cuenta
-						,:id_deuda
-						,SYSDATE
-						,:neto					
-						,:iva
-						,:interes_neto
-						,:iva_interes)");
+                    $sql = "SELECT b.pagada , 
+                            cup1.NRO_FACTURA C1,
+                            cup1.pagada     c1_pagada, 
+                            cup1.IMPORTE_1VTO C1_NETO,
+                            cup1.IVA_1VTO C1_IVA, 
+                            DECODE( SIGN(TRUNC(SYSDATE)-TRUNC(CUP1.FECHA_1VTO) ) , 1 , 'S','N' ) C1_VENCIDA, 
+                            cup2.NRO_FACTURA C2,
+                            cup2.pagada c2_pagada, 
+                            cup2.IMPORTE_1VTO C2_NETO,
+                            cup2.IVA_1VTO C2_IVA, 
+                            DECODE( SIGN(TRUNC(SYSDATE)-TRUNC(CUP2.FECHA_1VTO) ) , 1 , 'S','N' ) C2_VENCIDA 
+                          FROM detalles_facturas a, facturas b, facturas cup1, facturas cup2
+                         WHERE a.id_empresa = ".$cta_datos["ID_EMPRESA"]."
+                           AND a.id_sucursal = ".$cta_datos["ID_SUCURSAL"]."
+                           AND a.cuenta = ".$cta_datos["CUENTA"]."
+                           AND a.origen = 'DEU'
+                           AND a.cod_iva = '".$deu["TIPO_IVA"]."'
+                           AND a.id_origen =".$deu["ID_DEUDA"]."
+                           AND a.id_empresa = b.id_empresa
+                           AND a.id_sucursal = b.id_sucursal
+                           AND a.cod_iva = b.cod_iva
+                           AND a.nro_factura = b.nro_factura
+                           and SUBSTR (detalle, 1, 1)='#'
+                           and b.id_empresa=cup1.id_empresa(+)
+                           and b.ID_SUCURSAL=cup1.id_sucursal(+)
+                           and b.NRO_FACT_CUPON1=cup1.NRO_FACTURA(+)
+                           and b.cod_iva=cup1.cod_iva(+)
+                           and b.id_empresa=cup2.id_empresa(+)
+                           and b.ID_SUCURSAL=cup2.id_sucursal(+)
+                           and b.NRO_FACT_CUPON2=cup2.NRO_FACTURA(+)
+                           and b.cod_iva=cup2.cod_iva(+)";   
 
-					$neto=0;
-					$iva=0;
-					$interes_neto=0;
-					$iva_interes=0;
-
-					$sth->bindParam(':id_empresa', $cta_datos["ID_EMPRESA"], \PDO::PARAM_INT);
-					$sth->bindParam(':id_sucursal', $cta_datos["ID_SUCURSAL"], \PDO::PARAM_INT);
-					$sth->bindParam(':cuenta', $cta_datos["CUENTA"], \PDO::PARAM_INT);
-					$sth->bindParam(':id_deuda', $deu["ID_DEUDA"], \PDO::PARAM_INT);
-					$sth->bindParam(':neto', $neto, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
-					$sth->bindParam(':iva', $iva, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
-					$sth->bindParam(':interes_neto', $interes_neto, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
-					$sth->bindParam(':iva_interes', $iva_interes, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT,100 );
-
-					if( !$sth->execute()  ){
-						$logger->debug( "consulta_deuda DATOS_ID_DEUDA error".print_r($sth->errorInfo(),true));
-						return "consulta_deuda DATOS_ID_DEUDA error".print_r($sth->errorInfo(),true);
-					}
+                    $sth = $database->pdo->prepare($sql);
 
 
+                    if( !$sth->execute()  ){
+                        $logger->debug( "backend_aguas:consulta_deuda 1 error".print_r($sth->errorInfo(),true));
+                        return "backend_aguas:consulta_deuda 1 error".print_r($sth->errorInfo(),true);
+                    }
+
+                    $cupones = $sth->fetchAll()[0];
+
+                    $accion = null;
+                    if( isset($cupones["C1"]) && 
+                        $cupones["C1"]!== null && 
+                        $cupones["C1_PAGADA"]==="N" && 
+                        $cupones["C1_VENCIDA"]==="S" && 
+                        $cupones["C2_VENCIDA"]==="N" ){
+                        //
+                        // Cupon1 vencido, CUpon2 sin vencer => Refacturar CUPON1
+                        //
+                        $neto = $cupones["C1_NETO"];
+                        $iva  = $cupones["C1_IVA"];
+                        $interes_neto = 0;
+                        $iva_interes = 0;
+                    }elseif( isset($cupones["C1"]) && 
+                        $cupones["C1"]!== null && 
+                        $cupones["C1_PAGADA"]==="S" && 
+                        $cupones["C2_PAGADA"]==="N" && 
+                        $cupones["C2_VENCIDA"]==="N" ){
+                        //
+                        // Cupon1 pagadao, CUpon2 sin vencer => Es solo CUPON2
+                        //
+                        $neto = $cupones["C2_NETO"];
+                        $iva  = $cupones["C2_IVA"];
+                        $interes_neto = 0;
+                        $iva_interes = 0;
+                        $accion = "0-DEVC2-".$cupones["C2"];
+                    }else{
+    					$sth = $database->pdo->prepare("CALL PKG_DEUDA.DATOS_ID_DEUDA(:id_empresa
+    						,:id_sucursal
+    						,:cuenta
+    						,:id_deuda
+    						,SYSDATE
+    						,:neto					
+    						,:iva
+    						,:interes_neto
+    						,:iva_interes)");
+
+    					$neto=0;
+    					$iva=0;
+    					$interes_neto=0;
+    					$iva_interes=0;
+
+    					$sth->bindParam(':id_empresa', $cta_datos["ID_EMPRESA"], \PDO::PARAM_INT);
+    					$sth->bindParam(':id_sucursal', $cta_datos["ID_SUCURSAL"], \PDO::PARAM_INT);
+    					$sth->bindParam(':cuenta', $cta_datos["CUENTA"], \PDO::PARAM_INT);
+    					$sth->bindParam(':id_deuda', $deu["ID_DEUDA"], \PDO::PARAM_INT);
+    					$sth->bindParam(':neto', $neto, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+    					$sth->bindParam(':iva', $iva, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+    					$sth->bindParam(':interes_neto', $interes_neto, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+    					$sth->bindParam(':iva_interes', $iva_interes, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT,100 );
+
+    					if( !$sth->execute()  ){
+    						$logger->debug( "consulta_deuda DATOS_ID_DEUDA error".print_r($sth->errorInfo(),true));
+    						return "consulta_deuda DATOS_ID_DEUDA error".print_r($sth->errorInfo(),true);
+    					}
+                    }
 					$sth = $database->pdo->prepare("begin :concepto := pkg_deuda.descripcion(:id_empresa
 		  			,:id_sucursal
 					,:cuenta
@@ -161,7 +229,6 @@ class backend_arsa extends backend_aguas
 						$logger->debug( "consulta_deuda DESCRIPCION_DEUDA error".print_r($sth->errorInfo(),true));
 						return "consulta_deuda DESCRIPCION_DEUDA error".print_r($sth->errorInfo(),true);
 					}
-
 		        	//
 		        	// Verificar si va en proximos vencimientos o en deudas
 		        	//
@@ -181,7 +248,8 @@ class backend_arsa extends backend_aguas
                 				"per_id"=>$deu["deu_vto"],
                 				"per_desc1"=>"",
                 				"per_desc2"=>"",
-                				"deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$deu["TIPO_IVA"]."-".$deu["ID_DEUDA"],
+                				"deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$deu["TIPO_IVA"]."-".$deu["ID_DEUDA"] .
+                                    (isset($accion) ? "-".$accion : "" ),
                 				"deu_desc1" => $concepto." V:".substr($deu["deu_vto"],8,2)."/".substr($deu["deu_vto"],5,2)."/".substr($deu["deu_vto"],0,4),
                 				"deu_desc2" => "",
                 				"deu_vto"=>$deu["deu_vto"],
@@ -204,7 +272,8 @@ class backend_arsa extends backend_aguas
                 				"per_id"=>$deu["deu_vto"],
                 				"per_desc1"=>"",
                 				"per_desc2"=>"",
-                				"deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$deu["TIPO_IVA"]."-".$deu["ID_DEUDA"],
+                				"deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$deu["TIPO_IVA"]."-".$deu["ID_DEUDA"].
+                                    (isset($accion) ? "-".$accion :""),
                 				"deu_desc1" => $concepto." V:".substr($deu["deu_vto"],8,2)."/".substr($deu["deu_vto"],5,2)."/".substr($deu["deu_vto"],0,4),
                 				"deu_desc2" => "",
                 				"deu_vto"=>$deu["deu_vto"],
@@ -401,6 +470,150 @@ pkg_convenios.datos_cuota(
 
         return $array_rta;
     }    
+
+    public function resumen_pago($id_comprobantes, $fecha_actualizacion){
+      try{
+        $transaccion=false;
+        // Recorrer facturas y sumarlas
+        // [{"id":"1-0-41"},{"id":"1-0-54"},{"id":"1-0-42"
+        $consulta = new DeudaTmp(SlimBackend::Backend());
+        $database = $consulta->db;
+        $logger = $consulta->logger; 
+        $database->pdo->beginTransaction();
+        $transaccion=true;
+
+
+        $total = 0;
+        $comprobantes=[];
+        foreach ($id_comprobantes as $key => $value){
+            $id= preg_split("/-/",$value["id"]);
+            $id_empresa=$id[0];
+            $id_sucursal=$id[1];
+            $cuenta=$id[2];
+            $tipo_iva=$id[3];
+            $id_deu_conv=$id[4];
+            $nro_cuota = isset($id[5]) ? $id[5] : null;
+            $accion = isset($id[6]) ? $id[6] : null;
+            $cupon = isset($id[7]) ? $id[7] : null;
+
+            if( !isset($accion) ){
+                $insert = $database->insert("TMP_BACKEND_DEUDAS",
+                    ["ID_EMPRESA"=>$id_empresa,
+                     "ID_SUCURSAL"=>$id_sucursal,
+                     "CUENTA"=>$cuenta,
+                     "TIPO_IVA"=>$tipo_iva,
+                     "ID_DEUDA"=>( !isset($nro_cuota) ? $id_deu_conv : NULL),
+                     "NRO_CONVENIO"=>( isset($nro_cuota) ? $id_deu_conv : NULL),
+                     "NRO_CUOTA"=>$nro_cuota,
+                    ]);
+
+                if ( $insert->rowCount() <1){
+                    $logger->debug('backend_aguas:resumen_pago 1 '.print_r($database->log(),true));
+                    $logger->error( 'backend_aguas:resumen_pago 1 '.print_r($database->error(),true));
+                    $database->pdo->rollback();
+                    $transaccion=false;
+                    return "backend_aguas:resumen_pago 1 ".print_r($database->error()[1],true);
+                }
+            }elseif( $accion='DEVC2'){
+
+                $sql = "SELECT TRUNC (CUPON.fecha_1vto) fecha_1vto,
+                            CUPON.importe_1vto + CUPON.iva_1vto + CUPON.ley25413 importe,
+                            FAC.NRO_FACTURA
+                          FROM facturas CUPON, FACTURAS FAC
+                         WHERE CUPON.ID_EMPRESA=FAC.ID_EMPRESA
+                           AND CUPON.ID_SUCURSAL=FAC.ID_SUCURSAL
+                           AND CUPON.COD_IVA=FAC.COD_IVA
+                           AND CUPON.NRO_FACTURA=FAC.NRO_FACT_CUPON2
+                           AND CUPON.id_empresa = ".$id_empresa."
+                           AND CUPON.id_sucursal = ".$id_sucursal."
+                           AND CUPON.cuenta = ".$cuenta."
+                           AND CUPON.cod_iva = '".$tipo_iva."'
+                           AND CUPON.nro_factura = ".$cupon;
+
+                $sth = $database->pdo->prepare($sql);
+
+                if( !$sth->execute()  ){
+                    $logger->debug( "backend_aguas:resumen_pago 1.5 error:".$sql." ".print_r($sth->errorInfo(),true));
+                    return "backend_aguas:resumen_pago 1.5 error".print_r($sth->errorInfo(),true);
+                }
+
+                $cupones = $sth->fetchAll()[0];
+
+                $comprobantes[]=["id_comprobante"=> $id_empresa."-".$id_sucursal."-".$cupon."-".$tipo_iva,
+                                "total"=>$cupones["IMPORTE"],
+                                "fecha_vto"=>$cupones["FECHA_1VTO"],
+                                "descripcion"=>"Factura Cupon".$id_empresa."-".$tipo_iva."-".$cupones["NRO_FACTURA"]
+                            ];
+                $total = $total+$cupones["IMPORTE"];                     
+            }
+        }
+
+        $sth = $database->pdo->prepare("begin :resultado := pkg_backend.generar_facturas(to_date(:fecha_actualizacion,'YYYY-MM-DD HH24:MI:SS'));end;");
+
+        $resultado="";
+
+        $sth->bindParam(':fecha_actualizacion', $fecha_actualizacion, \PDO::PARAM_INT);
+        $sth->bindParam(':resultado', $resultado, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,4000 );
+
+        if( !$sth->execute()  ){
+            $logger->debug( "backend_aguas:resumen_pago 2 error".print_r($sth->errorInfo(),true));
+            return "backend_aguas:resumen_pago 2 error".print_r($sth->errorInfo(),true);
+        }
+        if( $resultado!=="OK"  ){
+            $logger->debug( "backend_aguas:resumen_pago 2,5 error".$resultado );
+            $database->pdo->rollback();
+            $transaccion=false;
+            return "backend_aguas:resumen_pago 2,5 error".$resultado ;
+        }
+
+        $qry_facturas = new FacturaTmp(SlimBackend::Backend());
+
+        $join = ["[><]FACTURAS" =>["ID_EMPRESA"=>"ID_EMPRESA",
+                                    "ID_SUCURSAL"=>"ID_SUCURSAL",
+                                    "NRO_FACTURA"=>"NRO_FACTURA",
+                                    "COD_IVA"=>"COD_IVA"]];
+        $campos = ["TMP_BACKEND_FACTURAS.ID_EMPRESA",
+                   "TMP_BACKEND_FACTURAS.ID_SUCURSAL",
+                   "TMP_BACKEND_FACTURAS.NRO_FACTURA",
+                   "TMP_BACKEND_FACTURAS.COD_IVA",
+                   "FECHA_1VTO",
+                   "IMPORTE_1VTO",
+                   "IVA_1VTO",
+                   "LEY25413",
+                    ];
+        $facturas = $qry_facturas->selectj($join,$campos,[]);
+        if( $qry_facturas->error() ){
+            $logger->debug('backend_aguas:resumen_pago 3 error:'.print_r($qry_facturas->db->log(),true));
+            $logger->error( 'backend_aguas:resumen_pago 3 error:'.print_r($qry_facturas->getDb()->error(),true));
+            $database->pdo->rollback();
+            $transaccion=false;
+            return "backend_aguas:resumen_pago 3 error:".print_r($qry_facturas->getDb()->error()[1],true);              
+        }
+
+        foreach ($facturas as $key => $factura) {
+            $comprobantes[]=["id_comprobante"=> $factura["ID_EMPRESA"]."-".$factura["ID_SUCURSAL"]."-".$factura["NRO_FACTURA"]."-".$factura["COD_IVA"],
+                            "total"=>$factura["IMPORTE_1VTO"]+$factura["IVA_1VTO"]+$factura["LEY25413"],
+                            "fecha_vto"=>$factura["FECHA_1VTO"],
+                            "descripcion"=>"Factura ".$factura["ID_EMPRESA"]."-".$factura["COD_IVA"]."-".$factura["NRO_FACTURA"]
+                        ];
+            $total = $total+$factura["IMPORTE_1VTO"]+$factura["IVA_1VTO"]+$factura["LEY25413"];         
+        }
+        $database->pdo->commit();
+
+        return array("rta" => "OK", 
+              "comprobantesFact" => $id_comprobantes,
+              "comprobantes" => $comprobantes,
+              "total" => $total,
+              "max_fecha_vto" => $fecha_actualizacion);
+      } catch (Exception $e) {
+            if($transaccion){
+                $database->pdo->rollback();
+                $transaccion=false;
+            }
+        return array("rta" => "Error", 
+              "error" => $e->get_message() );
+      }
+    }
 
 
     public static function reporteFacturas($params) {
