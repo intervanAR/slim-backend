@@ -116,7 +116,7 @@ class backend_arsa extends backend_aguas
             	try{
                     $sql = "SELECT b.pagada , 
                             cup1.NRO_FACTURA C1,
-                            cup1.pagada     c1_pagada, 
+                            cup1.pagada   c1_pagada, 
                             cup1.IMPORTE_1VTO C1_NETO,
                             cup1.IVA_1VTO C1_IVA, 
                             DECODE( SIGN(TRUNC(SYSDATE)-TRUNC(CUP1.FECHA_1VTO) ) , 1 , 'S','N' ) C1_VENCIDA, 
@@ -124,7 +124,8 @@ class backend_arsa extends backend_aguas
                             cup2.pagada c2_pagada, 
                             cup2.IMPORTE_1VTO C2_NETO,
                             cup2.IVA_1VTO C2_IVA, 
-                            DECODE( SIGN(TRUNC(SYSDATE)-TRUNC(CUP2.FECHA_1VTO) ) , 1 , 'S','N' ) C2_VENCIDA 
+                            DECODE( SIGN(TRUNC(SYSDATE)-TRUNC(CUP2.FECHA_1VTO) ) , 1 , 'S','N' ) C2_VENCIDA,
+                            cup2.fecha_1vto c2_vto
                           FROM detalles_facturas a, facturas b, facturas cup1, facturas cup2
                          WHERE a.id_empresa = ".$cta_datos["ID_EMPRESA"]."
                            AND a.id_sucursal = ".$cta_datos["ID_SUCURSAL"]."
@@ -150,8 +151,8 @@ class backend_arsa extends backend_aguas
 
 
                     if( !$sth->execute()  ){
-                        $logger->debug( "backend_aguas:consulta_deuda 1 error".print_r($sth->errorInfo(),true));
-                        return "backend_aguas:consulta_deuda 1 error".print_r($sth->errorInfo(),true);
+                        $logger->debug( "backend_aguas:consulta_deuda 2.5 error".print_r($sth->errorInfo(),true));
+                        return "backend_aguas:consulta_deuda 2.5 error".print_r($sth->errorInfo(),true);
                     }
 
                     $cupones = $sth->fetchAll()[0];
@@ -160,6 +161,7 @@ class backend_arsa extends backend_aguas
                     $accion = null;
                     $cupon1 = false;
                     $cupon2 = false;
+                    $c2_vto = null;                    
                     if( isset($cupones["C1"]) && 
                         $cupones["C1"]!== null && 
                         $cupones["C1_PAGADA"]==="N" && 
@@ -184,6 +186,7 @@ class backend_arsa extends backend_aguas
                         //
                         $neto2 = $cupones["C2_NETO"];
                         $iva2  = $cupones["C2_IVA"];
+                        $c2_vto = $cupones["C2_VTO"];
                         $accion = "0-DEVC2-".$cupones["C2"];
                         $actualizar = false;
                         $cupon2 = true;
@@ -264,11 +267,13 @@ class backend_arsa extends backend_aguas
 								];
 					}
                     if( $hoy< $deu["deu_vto"] || $cupon2 ) {
+                        $vto_deuda = $deu["deu_vto"];
                         if( $cupon2){
                             $neto = $neto2;
                             $iva = $iva2;
                             $interes_neto = 0;
                             $iva_interes = 0;
+                            $vto_deuda=$c2_vto;
                         }
 						$prox[] = ["cont_id"=> $cta_datos["ID_PERSONA"],
 								"cont_desc1"=> $cta_datos["RESPONSABLE"],
@@ -282,14 +287,14 @@ class backend_arsa extends backend_aguas
                 				"imp_id" =>"1",
                                 "imp_desc1"=>$cta_datos["DESC_SERVICIO"],
                 				"imp_desc2"=>"",
-                				"per_id"=>$deu["deu_vto"],
+                				"per_id"=>$vto_deuda,
                 				"per_desc1"=>"",
                 				"per_desc2"=>"",
                 				"deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$deu["TIPO_IVA"]."-".$deu["ID_DEUDA"].
                                     (isset($accion) ? "-".$accion:""),
-                				"deu_desc1" => $concepto." V:".substr($deu["deu_vto"],8,2)."/".substr($deu["deu_vto"],5,2)."/".substr($deu["deu_vto"],0,4),
+                				"deu_desc1" => $concepto." V:".substr($vto_deuda,8,2)."/".substr($vto_deuda,5,2)."/".substr($vto_deuda,0,4),
                 				"deu_desc2" => "",
-                				"deu_vto"=>$deu["deu_vto"],
+                				"deu_vto"=>$vto_deuda,
                 				"deu_capital"=>$neto+$iva,
                 				"deu_recargo"=>($interes_neto+$iva_interes)
 								];
