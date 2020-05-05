@@ -741,7 +741,13 @@ pkg_convenios.datos_cuota(
 				    'UF:'||catastro_uf ||' .' datos_catastrales,
                     emp.descripcion nombre_empresa,        
                     'Nuestras oficinas atienden al público de 8 a 13hs en '||pkg_modelos.direccion_localidad_sucursal(fac.id_empresa,fac.id_sucursal,cue.cod_localidad)||' Tel. '||
-  pkg_modelos.telefono_localidad_sucursal(fac.id_empresa,fac.id_sucursal,cue.cod_localidad) telefono
+  pkg_modelos.telefono_localidad_sucursal(fac.id_empresa,fac.id_sucursal,cue.cod_localidad) telefono,
+                    fac.NRO_FACt_cupon1,
+                    fac.NRO_FACt_cupon2
+                  ,Pkg_Recaudadores.cod_externo(fac.id_empresa
+                                                        ,Pkg_Varios.ID_REC_RED_LINK(fac.id_empresa))
+                              || LPAD(fac.clave_link,13,'0') clave_link
+                  ,fac.clave_banelco
 				from facturas fac
 				  ,cuentas cue
 				  ,calles cal_inm
@@ -1024,21 +1030,20 @@ pkg_convenios.datos_cuota(
                     ["multi-x"=>160 , "multi-y"=>36,"multi-text"=>utf8_encode($row["CATEGORIA"]),
                     "multi-al"=>"C","muli-w"=>40,"multi-h"=>15],
                     ($cod_iva==="MT"|| $cod_iva==="RI") ? 
-                    ["multi-x"=>160 , "multi-y"=>56,"multi-text"=>utf8_encode($row["CUIT"]),
+                    ["multi-x"=>160 , "multi-y"=>56,"multi-text"=>"CUIT:".utf8_encode($row["CUIT"]),
                     "multi-al"=>"C","muli-w"=>40,"multi-h"=>15]
                     : [],
                     ["font-family"=>"courier" , "font-size"=>10 ],
-                    ["text-x"=>55 , "text-y"=>45,"text"=>"FACTURA:".$id_empresa."-".$cod_iva."-".$nro_factura],
+                    ["text-x"=>65 , "text-y"=>35,"text"=>"FACTURA:".$id_empresa."-".$cod_iva."-".$nro_factura],
                     ["font-family"=>"times" , "font-size"=>12 ],
-                    ["text-x"=>40 , "text-y"=>63,"text"=>"CUENTA:".$row["CUENTA"]],
+                    ["text-x"=>65 , "text-y"=>40,"text"=>"CUENTA:".$row["CUENTA"]],
                     ["font-family"=>"times" , "font-size"=>10 ],
                     ["text-x"=>107 , "text-y"=>68,"text"=>utf8_encode("(".$row["TIPO_SERVICIO"].")".$row["SERVICIO"])],
                     ["font-family"=>"times" , "font-size"=>11 ],
-                    ["text-x"=>22 , "text-y"=>74,"text"=>utf8_encode($row["INMUEBLE_CALLE"]." Nro:".$row["INMUEBLE_NRO"])],
-                    ["text-x"=>22 , "text-y"=>79,"text"=>utf8_encode($row["INMUEBLE_PISO"])],
+                    ["text-x"=>5 , "text-y"=>74,"text"=>"Calle:".utf8_encode($row["INMUEBLE_CALLE"]." Nro:".$row["INMUEBLE_NRO"])],
+                    ["text-x"=>5 , "text-y"=>79,"text"=>"Piso:".utf8_encode($row["INMUEBLE_PISO"]." Dto:" . $row["INMUEBLE_DTO"] )],
                     ["text-x"=>60 , "text-y"=>79,"text"=>utf8_encode("Sistema ".$row["TIPO_FACTURACION_DES"])],
-                    ["text-x"=>22 , "text-y"=>86,"text"=>utf8_encode($row["INMUEBLE_DTO"])],
-                    ["text-x"=>42 , "text-y"=>89,"text"=>utf8_encode($row["DATOS_CATASTRALES"])],
+                    ["text-x"=>5 , "text-y"=>89,"text"=>"Designación Catastral:".utf8_encode($row["DATOS_CATASTRALES"])],
                     ["font-family"=>"times" , "font-size"=>10 ],                    
                     ["multi-x"=>3 , "multi-y"=>132,"multi-text"=>utf8_encode($row["TELEFONO"]),
                     "multi-al"=>"L","multi-w"=>80,"multi-h"=>10],
@@ -1057,10 +1062,41 @@ pkg_convenios.datos_cuota(
                      ["text-x"=>108 , "text-y"=>150,"text"=>"El IVA discriminado NO puede computarse como crédito fiscal"]
                     : [],
                     ["font-family"=>"times" , "font-size"=>11, "font-style"=>"BI" ],
-                    ["text-x"=>150 , "text-y"=>192,"text"=>"Fecha emisión ".$row["FECHA_EMISION_TXT"]],
+                    ["text-x"=>150 , "text-y"=>200,"text"=>"Fecha emisión ".$row["FECHA_EMISION_TXT"]],
                 ];
 
+            if( isset( $row["NRO_FACT_CUPON1"]) && $row["NRO_FACT_CUPON1"]!==""){
+                $data = array_merge($data,[                    
+                    ["font-family"=>"times" , "font-size"=>12, "font-style"=>"" ],            
+                    ["text-x"=>108 , "text-y"=>160,"text"=>"Cuota 1 de 2"],        
+                    ["multi-x"=>175 , "multi-y"=>160,"multi-text"=>$row["TOTAL_1VTO"],
+                    "multi-al"=>"R","multi-w"=>30,"multi-h"=>10],
+                    ["text-x"=>108 , "text-y"=>166,"text"=>"Vencimiento"],        
+                    ["text-x"=>150 , "text-y"=>166,"text"=>$row["FECHA_1VTO_TXT"]],        
+
+                    ["text-x"=>108 , "text-y"=>172,"text"=>"Cuota 2 de 2"],        
+                    ["multi-x"=>175 , "multi-y"=>172,"multi-text"=>$row["TOTAL_2VTO"],
+                    "multi-al"=>"R","multi-w"=>30,"multi-h"=>10],
+                    ["text-x"=>108 , "text-y"=>178,"text"=>"Vencimiento"],        
+                    ["text-x"=>150 , "text-y"=>178,"text"=>$row["FECHA_2VTO_TXT"]],        
+
+                  ]);
+            }
+
             if($original==="S"){
+
+                $data = array_merge($data,[                    
+                    ["font-family"=>"times" , "font-size"=>12, "font-style"=>"B" ],            
+                    ["text-x"=>108 , "text-y"=>184,"text"=>"Clave Link"],        
+                    ["multi-x"=>155 , "multi-y"=>184,"multi-text"=>$row["CLAVE_LINK"],
+                    "multi-al"=>"R","multi-w"=>50,"multi-h"=>10],
+                    ["text-x"=>108 , "text-y"=>190,"text"=>"Clave Banelco"],        
+                    ["multi-x"=>155 , "multi-y"=>190,"multi-text"=>$row["CLAVE_BANELCO"],
+                    "multi-al"=>"R","multi-w"=>50,"multi-h"=>10],
+                  ]);
+
+
+
                 $estado_ant = "Fecha Estado Anterior: $cp_fecha_lect_ant Est. Anterior: $cp_estado_ant";
                 $estado_act = "Fecha Estado Actual: $cp_fecha_lect_act  Est. Actual: $cp_estado_act";
                 $prox_vto = "Fecha Próximo Vto: $cp_prox_vto  m3 Consumo: $cp_consumo";
@@ -1099,6 +1135,8 @@ pkg_convenios.datos_cuota(
                     ["text-x"=>$x+51 , "text-y"=>$y,"text"=>"Factura ".$id_empresa."-".$cod_iva."-".$nro_factura],
                     ["font-family"=>"times" , "font-size"=>12 ],
                     ["text-x"=>$x+57 , "text-y"=>$y+5,"text"=>$row["CUENTA"]],
+                    ["text-x"=>$x+57 , "text-y"=>$y+11,"text"=>utf8_encode($cp_periodo_facturacion)],
+                    ["text-x"=>$x+57 , "text-y"=>$y+17,"text"=>"Cupón:".$row["NRO_FACT_CUPON1"] ],
                     ["font-family"=>"times" , "font-size"=>11 ],
                     ["text-x"=>$x+41 , "text-y"=>$y+29,"text"=>$row["FECHA_1VTO_TXT"]],
                     ["text-x"=>$x+83 , "text-y"=>$y+29,"text"=>$row["TOTAL_1VTO"]],
@@ -1113,6 +1151,8 @@ pkg_convenios.datos_cuota(
                     ["text-x"=>$x+51 , "text-y"=>$y,"text"=>"Factura ".$id_empresa."-".$cod_iva."-".$nro_factura],
                     ["font-family"=>"times" , "font-size"=>12 ],
                     ["text-x"=>$x+57 , "text-y"=>$y+5,"text"=>$row["CUENTA"]],
+                    ["text-x"=>$x+57 , "text-y"=>$y+11,"text"=>utf8_encode($cp_periodo_facturacion)],
+                    ["text-x"=>$x+57 , "text-y"=>$y+17,"text"=>"Cupón:".$row["NRO_FACT_CUPON2"] ],
                     ["font-family"=>"times" , "font-size"=>11 ],
                     ["text-x"=>$x+41 , "text-y"=>$y+29,"text"=>$row["FECHA_2VTO_TXT"]],
                     ["text-x"=>$x+83 , "text-y"=>$y+29,"text"=>$row["TOTAL_2VTO"]],
