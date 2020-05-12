@@ -1034,7 +1034,7 @@ pkg_convenios.datos_cuota(
                     "multi-al"=>"C","muli-w"=>40,"multi-h"=>15]
                     : [],
                     ["font-family"=>"courier" , "font-size"=>10 ],
-                    ["text-x"=>65 , "text-y"=>35,"text"=>"FACTURA:".$id_empresa."-".$cod_iva."-".$nro_factura],
+                    ["text-x"=>65 , "text-y"=>35,"text"=>"FACTURA:".$id_sucursal."-".$cod_iva."-".$nro_factura],
                     ["font-family"=>"times" , "font-size"=>12 ],
                     ["text-x"=>65 , "text-y"=>40,"text"=>"CUENTA:".$row["CUENTA"]],
                     ["font-family"=>"times" , "font-size"=>10 ],

@@ -926,7 +926,7 @@ pkg_convenios.datos_cuota(
         $facturas=[];
         foreach ($cuentas as $key_cta => $value_cta) {
             list($id_empresa,$id_sucursal,$cuenta)= preg_split("/-/",$value_cta["id_cuenta"]);      
-            $sql = "SELECT   id_empresa || '-' || cod_iva || '-' || nro_factura \"nro_factura\",
+            $sql = "SELECT   id_sucursal || '-' || cod_iva || '-' || nro_factura \"nro_factura\",
                              id_empresa || '-' || id_sucursal|| '-' || nro_factura ||'-'||cod_iva \"id_comprobante\",
                              'Servicio' \"descripcion_factura\",
                              CASE
