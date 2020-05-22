@@ -29,6 +29,8 @@
             $backend = new \Backend\Conectores\backend_creditos();
         } elseif ($setting === 'erp') {
             $backend = new \Backend\Conectores\backend_erp();
+        } elseif ($setting === 'clubonline') {
+            $backend = new \Backend\Conectores\backend_clubonline();
         } elseif ($setting === 'demo') {
             $backend = new \Backend\Conectores\backend_demo();
         } else {

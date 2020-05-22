@@ -71,6 +71,9 @@ if( isset($settings["settings"]["authentication"])){
 
 }
 
+if(isset($settings["settings"]["empresaMiddleware"])){ 
+	$app -> add(new Backend\Controllers\EmpresaMiddleware($settings["settings"]["empresaMiddleware"]));
+}
 
 // Lanzar servidor
 $app->run();
