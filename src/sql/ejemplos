@@ -14,20 +14,18 @@ curl  https://s002.myclubonline.com.ar:8181/Sasha/CollectionsOnLine/API/BalanceC
    "clubMember":"Olivera, Carlos David",
    "description":"Cuota Social > Abr-19 > Deportivo Mayor"
 },
-{"number":"0-1305","creditDate":"01\/05\/2019","idCreditDueDate":197393,"balance":1300.0,"dueDate":"31\/05\/2019","document":"Ticket","clubMember":"Olivera, Carlos David","description":"Cuota Social > May-19 > Deportivo Mayor"},
-{"number":"0-3022","creditDate":"01\/06\/2019","idCreditDueDate":210914,"balance":1300.0,"dueDate":"30\/06\/2019","document":"Ticket","clubMember":"Olivera, Carlos David","description":"Cuota Social > Jun-19 > Deportivo Mayor"},
-{"number":"0-4152","creditDate":"01\/07\/2019","idCreditDueDate":233391,"balance":1300.0,"dueDate":"31\/07\/2019","document":"Ticket","clubMember":"Olivera, Carlos David","description":"Cuota Social > Jul-19 > Deportivo Mayor"},
-{"number":"0-5484","creditDate":"01\/08\/2019","idCreditDueDate":257554,"balance":1300.0,"dueDate":"31\/08\/2019","document":"Ticket","clubMember":"Olivera, Carlos David","description":"Cuota Social > Ago-19 > Deportivo Mayor"},
-{"number":"0-6634","creditDate":"01\/09\/2019","idCreditDueDate":283748,"balance":1300.0,"dueDate":"30\/09\/2019","document":"Ticket","clubMember":"Olivera, Carlos David","description":"Cuota Social > Sep-19 > Deportivo Mayor"},
-{"number":"0-7765","creditDate":"01\/10\/2019","idCreditDueDate":308346,"balance":1300.0,"dueDate":"31\/10\/2019","document":"Ticket","clubMember":"Olivera, Carlos David","description":"Cuota Social > Oct-19 > Deportivo Mayor"},
-{"number":"0-9038","creditDate":"01\/11\/2019","idCreditDueDate":333084,"balance":1300.0,"dueDate":"30\/11\/2019","document":"Ticket","clubMember":"Olivera, Carlos David","description":"Cuota Social > Nov-19 > Deportivo Mayor"},
-{"number":"0-10149","creditDate":"01\/12\/2019","idCreditDueDate":357696,"balance":1700.0,"dueDate":"31\/12\/2019","document":"Ticket","clubMember":"Olivera, Carlos David","description":"Cuota Social > Dic-19 > Deportivo Mayor"},
-{"number":"0-11109","creditDate":"01\/01\/2020","idCreditDueDate":380643,"balance":1700.0,"dueDate":"31\/01\/2020","document":"Ticket","clubMember":"Olivera, Carlos David","description":"Cuota Social > Ene-20 > Deportivo Mayor"},
-{"number":"0-12111","creditDate":"01\/02\/2020","idCreditDueDate":409394,"balance":1700.0,"dueDate":"29\/02\/2020","document":"Ticket","clubMember":"Olivera, Carlos David","description":"Cuota Social > Feb-20 > Deportivo Mayor"},
-{"number":"0-13245","creditDate":"01\/03\/2020","idCreditDueDate":439090,"balance":1700.0,"dueDate":"31\/03\/2020","document":"Ticket","clubMember":"Olivera, Carlos David","description":"Cuota Social > Mar-20 > Deportivo Mayor"},
-{"number":"0-14705","creditDate":"01\/04\/2020","idCreditDueDate":472220,"balance":1700.0,"dueDate":"30\/04\/2020","document":"Ticket","clubMember":"Olivera, Carlos David","description":"Cuota Social > Abr-20 > Deportivo Mayor"},
-{"number":"0-15669","creditDate":"01\/05\/2020","idCreditDueDate":494182,"balance":1700.0,"dueDate":"31\/05\/2020","document":"Ticket","clubMember":"Olivera, Carlos David","description":"Cuota Social > May-20 > Deportivo Mayor"}
-]
+
+{"number":"0-1",
+  "creditDate":"01\/01\/2020",
+  "idCreditDueDate":509565,
+  "balance":1000.0,
+  "dueDate":"31\/01\/2020",
+  "document":"Ticket",
+  "clubMember":"Torres, Daro",
+  "description":"Cuota Social > Ene-20 > Activo"
+}
+
+11111111
 
 
 curl https://s002.myclubonline.com.ar:8181/Sasha/CollectionsOnLine/API/CollectionResponse --data [{\"idCreditDueDate\":196927,\"collected\":\"true\"},{\"idCreditDueDate\":197393,\"collected\":\"true\"},{\"idCreditDueDate\":210914,\"collected\":\"true\"}]
