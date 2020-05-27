@@ -259,11 +259,11 @@ class backend_clubonline implements backend_servicio
 
         $id_operaciones[]=$comprobante["id_comprobante"];
         
-        $data[]=["idCreditDueDate"=>$comprobante["id_comprobante"]+0,"collected"=>"true"];
+        $data[]=["idCreditDueDate"=>$comprobante["id_comprobante"]+0,"response"=>"true"];
 
       }
 
-      $rta = self::CallAPI( $id_empresa , "POST", "CollectionResponse" , $data);
+      $rta = self::CallAPI( $id_empresa , "POST", "CollectionsResponse" , $data);
 
       if($rta["httpCode"]===200){
         return array("rta" => "OK", 'id_operacion_pago' => $id_operaciones);  
