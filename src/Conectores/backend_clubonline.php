@@ -133,7 +133,13 @@ class backend_clubonline implements backend_servicio
                "privateKey" =>$privateKey,
                "personalId" => $nro_documento+0 ];
 
-      $filas = self::CallAPI( $id_empresa , "POST", "BalanceComposition" , $data)["response"];
+      $rta = self::CallAPI( $id_empresa , "POST", "BalanceComposition" , $data);
+
+      if($rta["httpCode"]===200){
+        $filas=$rta["response"];  
+      }else{
+        $filas =[];
+      }
 
       $deuda = array_map(
               function($row) use($nro_documento) 
