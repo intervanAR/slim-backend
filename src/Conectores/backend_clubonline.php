@@ -12,6 +12,7 @@ class backend_clubonline implements backend_servicio
 
     $api_url =\Backend\SlimBackend::getParametros($id_empresa,"api_url",0,100,false)[0]["valor"];
     
+
     $user_id = null;//\Backend\SlimBackend::getParametros($id_empresa,"user_id",0,100,false)[0]["valor"];
 
     $user_password = null;//\Backend\SlimBackend::getParametros($id_empresa,"user_password",0,100,false)[0]["valor"];
@@ -114,7 +115,8 @@ class backend_clubonline implements backend_servicio
 
       $id_empresa = \Backend\SlimBackend::Backend()->settings['id_empresa'];
 
-      $club = \Backend\SlimBackend::getParametros($id_empresa,"club_id",0,100,false)[0]["valor"];
+      $taxId = \Backend\SlimBackend::getParametros($id_empresa,"taxId",0,100,false)[0]["valor"];
+      $privateKey = \Backend\SlimBackend::getParametros($id_empresa,"privateKey",0,100,false)[0]["valor"];
 
       if( isset($parametros['tipoDeuda']))
           $tipoDeuda= $parametros['tipoDeuda'];
@@ -126,17 +128,15 @@ class backend_clubonline implements backend_servicio
       else
           $nro_documento= -1;     
 
-      $logger->debug( "consulta_deuda" );
 
- 
-
-      $data = ["idCompany"  => $club+0,
+      $data = ["taxId"  => $taxId,
+               "privateKey" =>$privateKey,
                "personalId" => $nro_documento+0 ];
 
       $filas = self::CallAPI( $id_empresa , "POST", "BalanceComposition" , $data)["response"];
 
       $deuda = array_map(
-              function($row) use($club,$nro_documento) 
+              function($row) use($nro_documento) 
               { 
                 $vto = substr($row["dueDate"],6,4)."-".
                                   substr($row["dueDate"],3,2)."-".
@@ -152,7 +152,7 @@ class backend_clubonline implements backend_servicio
                       ["cont_id"=>$row["clubMember"] ,
                        "cont_desc1"=>$row["clubMember"],
                        "cont_desc2"=>"",
-                       "cue_id"=> $club."-".$nro_documento,
+                       "cue_id"=> $nro_documento,
                        "cue_desc1"=>$row["clubMember"],
                        "cue_desc2"=>"",
                        "imp_id"=>$cod_concepto,
@@ -250,20 +250,25 @@ class backend_clubonline implements backend_servicio
 
       $id_empresa = \Backend\SlimBackend::Backend()->settings['id_empresa'];
 
+      $taxId = \Backend\SlimBackend::getParametros($id_empresa,"taxId",0,100,false)[0]["valor"];
+      $privateKey = \Backend\SlimBackend::getParametros($id_empresa,"privateKey",0,100,false)[0]["valor"];
 
       $id_operaciones=[];
 
-      $data=[];
+      $data=[
+        "taxId"=>$taxId,
+        "privateKey"=>$privateKey
+      ];
 
       foreach ($comprobantes["comprobantes"] as $key => $comprobante) {
 
         $id_operaciones[]=$comprobante["id_comprobante"];
         
-        $data[]=["idCreditDueDate"=>$comprobante["id_comprobante"]+0,"response"=>"true"];
+        $data["credits"][]=["idCreditDueDate"=>$comprobante["id_comprobante"]+0];
 
       }
 
-      $rta = self::CallAPI( $id_empresa , "POST", "CollectionsResponse" , $data);
+      $rta = self::CallAPI( $id_empresa , "POST", "LockCredits" , $data);
 
       if($rta["httpCode"]===200){
         return array("rta" => "OK", 'id_operacion_pago' => $id_operaciones);  
@@ -274,13 +279,73 @@ class backend_clubonline implements backend_servicio
 
     public function confirmar_operacion_pago($id_operacion){
 
-      return array("rta" => "OK");
+      $logger = \Backend\SlimBackend::Backend()->logger;
 
+      $logger->debug( "confirmar_operacion_pago".json_encode($id_operacion));
+
+      $id_empresa = \Backend\SlimBackend::Backend()->settings['id_empresa'];
+
+      $taxId = \Backend\SlimBackend::getParametros($id_empresa,"taxId",0,100,false)[0]["valor"];
+      $privateKey = \Backend\SlimBackend::getParametros($id_empresa,"privateKey",0,100,false)[0]["valor"];
+
+      $id_operaciones=[];
+
+      $data=[
+        "taxId"=>$taxId,
+        "privateKey"=>$privateKey
+      ];
+
+      foreach ($id_operacion as $key => $comprobante) {
+
+        $id_operaciones[]=$comprobante;
+        
+        $data["credits"][]=["idCreditDueDate"=>$comprobante+0];
+
+      }
+
+      $rta = self::CallAPI( $id_empresa , "POST", "CollectCredits" , $data);
+
+      if($rta["httpCode"]===200){
+        return array("rta" => "OK", 'id_operacion_pago' => $id_operaciones);  
+      }
+      return array("rta" => "Error", 'id_operacion_pago' => -1,"message"=>$rta["response"]);
+      
     }
 
-    public function anular_operacion_pago($id_operacion)
-        { return array("rta"=>'OK');}
+    public function anular_operacion_pago($id_operacion){
 
+      $logger = \Backend\SlimBackend::Backend()->logger;
+
+      $logger->debug( "anular_operacion_pago".json_encode($id_operacion));
+
+      $id_empresa = \Backend\SlimBackend::Backend()->settings['id_empresa'];
+
+      $taxId = \Backend\SlimBackend::getParametros($id_empresa,"taxId",0,100,false)[0]["valor"];
+      $privateKey = \Backend\SlimBackend::getParametros($id_empresa,"privateKey",0,100,false)[0]["valor"];
+
+      $id_operaciones=[];
+
+      $data=[
+        "taxId"=>$taxId,
+        "privateKey"=>$privateKey
+      ];
+
+      foreach ($id_operacion as $key => $comprobante) {
+
+        $id_operaciones[]=$comprobante;
+        
+        $data["credits"][]=["idCreditDueDate"=>$comprobante+0];
+
+      }
+
+      $rta = self::CallAPI( $id_empresa , "POST", "UnlockCredits" , $data);
+
+      if($rta["httpCode"]===200){
+        return array("rta" => "OK", 'id_operacion_pago' => $id_operaciones);  
+      }
+
+      return array("rta" => "Error", 'id_operacion_pago' => -1,"message"=>$rta["response"]);
+    }
 
     public function get_reporte_factura($parametros){
         return array("resultado"=>'NO_IMPLEMENTADO');
