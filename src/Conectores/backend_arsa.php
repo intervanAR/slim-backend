@@ -120,6 +120,7 @@ class backend_arsa extends backend_aguas
                             cup1.pagada   c1_pagada, 
                             cup1.IMPORTE_1VTO C1_NETO,
                             cup1.IVA_1VTO C1_IVA, 
+                            cup1.fecha_1vto c1_vto,
                             DECODE( SIGN(TRUNC(SYSDATE)-TRUNC(CUP1.FECHA_1VTO) ) , 1 , 'S','N' ) C1_VENCIDA, 
                             cup2.NRO_FACTURA C2,
                             cup2.pagada c2_pagada, 
@@ -162,6 +163,7 @@ class backend_arsa extends backend_aguas
                     $accion = null;
                     $cupon1 = false;
                     $cupon2 = false;
+                    $c1_vto = null; 
                     $c2_vto = null;                    
                     if( isset($cupones["C1"]) && 
                         $cupones["C1"]!== null && 
@@ -180,6 +182,22 @@ class backend_arsa extends backend_aguas
                     }
                     if( isset($cupones["C1"]) && 
                         $cupones["C1"]!== null && 
+                        $cupones["C1_PAGADA"]==="N" && 
+                        $cupones["C1_VENCIDA"]==="N" ){
+                        //
+                        // Cupon1 vencido, CUpon2 sin vencer => Refacturar CUPON1
+                        //
+                        $neto1 = $cupones["C1_NETO"];
+                        $iva1  = $cupones["C1_IVA"];
+                        $c1_vto = $cupones["C1_VTO"];
+                        $accion1 = "0-DEVC1-".$cupones["C1"];
+                        $interes_neto1 = 0;
+                        $iva_interes1 = 0;
+                        $actualizar = false;
+                        $cupon1 = true;
+                    }
+                    if( isset($cupones["C1"]) && 
+                        $cupones["C1"]!== null && 
                         $cupones["C2_PAGADA"]==="N" && 
                         $cupones["C2_VENCIDA"]==="N" ){
                         //
@@ -188,7 +206,7 @@ class backend_arsa extends backend_aguas
                         $neto2 = $cupones["C2_NETO"];
                         $iva2  = $cupones["C2_IVA"];
                         $c2_vto = $cupones["C2_VTO"];
-                        $accion = "0-DEVC2-".$cupones["C2"];
+                        $accion2 = "0-DEVC2-".$cupones["C2"];
                         $actualizar = false;
                         $cupon2 = true;
                     }
@@ -267,6 +285,41 @@ class backend_arsa extends backend_aguas
                 				"deu_recargo"=>round(($interes_neto+$iva_interes) * $coef_ley25413 ,2)
 								];
 					}
+
+                    if( $hoy< $deu["deu_vto"] && $cupon1 ) {
+                        $vto_deuda = $deu["deu_vto"];
+                        if( $cupon1){
+                            $neto = $neto1;
+                            $iva = $iva1;
+                            $interes_neto = 0;
+                            $iva_interes = 0;
+                            $vto_deuda=$c1_vto;
+                        }
+                        $prox[] = ["cont_id"=> $cta_datos["ID_PERSONA"],
+                                "cont_desc1"=> $cta_datos["RESPONSABLE"],
+                                "cont_desc2"=> "",
+                                "cue_id"=> $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"],
+                                "cue_desc1"=> $cta_datos["CUENTA"]." ".(isset($cuenta["alias_cuenta"]) ? $cuenta["alias_cuenta"] : $cta_datos["RESPONSABLE"]),
+                                "cue_desc2"=>  $cta_datos['DESC_CALLE']." ".$cta_datos['INMUEBLE_NRO'].
+                        ( isset($cta_datos['INMUEBLE_PISO']) ? " ".$cta_datos['INMUEBLE_PISO'] : "" ) .
+                        ( isset($cta_datos['INMUEBLE_DTO']) ? " ".$cta_datos['INMUEBLE_DTO'] : "" ) .
+                        ( isset($cta_datos['DESC_LOCALIDAD']) ? " ".$cta_datos['DESC_LOCALIDAD'] : "" ),    
+                                "imp_id" =>"1",
+                                "imp_desc1"=>$cta_datos["DESC_SERVICIO"],
+                                "imp_desc2"=>"",
+                                "per_id"=>$vto_deuda,
+                                "per_desc1"=>"",
+                                "per_desc2"=>"",
+                                "deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$deu["TIPO_IVA"]."-".$deu["ID_DEUDA"].
+                                    (isset($accion1) ? "-".$accion1:""),
+                                "deu_desc1" => $concepto." V:".substr($vto_deuda,8,2)."/".substr($vto_deuda,5,2)."/".substr($vto_deuda,0,4),
+                                "deu_desc2" => "",
+                                "deu_vto"=>$vto_deuda,
+                                "deu_capital"=>round(($neto+$iva)* $coef_ley25413,2),
+                                "deu_recargo"=>round(($interes_neto+$iva_interes) * $coef_ley25413,2)
+                                ];
+                    }
+
                     if( $hoy< $deu["deu_vto"] || $cupon2 ) {
                         $vto_deuda = $deu["deu_vto"];
                         if( $cupon2){
@@ -292,7 +345,7 @@ class backend_arsa extends backend_aguas
                 				"per_desc1"=>"",
                 				"per_desc2"=>"",
                 				"deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$deu["TIPO_IVA"]."-".$deu["ID_DEUDA"].
-                                    (isset($accion) ? "-".$accion:""),
+                                    (isset($accion2) ? "-".$accion2:""),
                 				"deu_desc1" => $concepto." V:".substr($vto_deuda,8,2)."/".substr($vto_deuda,5,2)."/".substr($vto_deuda,0,4),
                 				"deu_desc2" => "",
                 				"deu_vto"=>$vto_deuda,
@@ -533,7 +586,7 @@ pkg_convenios.datos_cuota(
                     $transaccion=false;
                     return "backend_aguas:resumen_pago 1 ".print_r($database->error()[1],true);
                 }
-            }elseif( $accion='DEVC2'){
+            }elseif( $accion==='DEVC1'){
 
                 $sql = "SELECT TRUNC (CUPON.fecha_1vto) fecha_1vto,
                             CUPON.importe_1vto + CUPON.iva_1vto + CUPON.ley25413 importe,
@@ -542,7 +595,7 @@ pkg_convenios.datos_cuota(
                          WHERE CUPON.ID_EMPRESA=FAC.ID_EMPRESA
                            AND CUPON.ID_SUCURSAL=FAC.ID_SUCURSAL
                            AND CUPON.COD_IVA=FAC.COD_IVA
-                           AND CUPON.NRO_FACTURA=FAC.NRO_FACT_CUPON2
+                           AND CUPON.NRO_FACTURA=FAC.NRO_FACT_CUPON1
                            AND CUPON.id_empresa = ".$id_empresa."
                            AND CUPON.id_sucursal = ".$id_sucursal."
                            AND CUPON.cuenta = ".$cuenta."
@@ -564,7 +617,39 @@ pkg_convenios.datos_cuota(
                                 "descripcion"=>"Factura Cupon".$id_empresa."-".$tipo_iva."-".$cupones["NRO_FACTURA"]
                             ];
                 $total = $total+$cupones["IMPORTE"];                     
+            }elseif( $accion==='DEVC2'){
+
+                $sql = "SELECT TRUNC (CUPON.fecha_1vto) fecha_1vto,
+                            CUPON.importe_1vto + CUPON.iva_1vto + CUPON.ley25413 importe,
+                            FAC.NRO_FACTURA
+                          FROM facturas CUPON, FACTURAS FAC
+                         WHERE CUPON.ID_EMPRESA=FAC.ID_EMPRESA
+                           AND CUPON.ID_SUCURSAL=FAC.ID_SUCURSAL
+                           AND CUPON.COD_IVA=FAC.COD_IVA
+                           AND CUPON.NRO_FACTURA=FAC.NRO_FACT_CUPON2
+                           AND CUPON.id_empresa = ".$id_empresa."
+                           AND CUPON.id_sucursal = ".$id_sucursal."
+                           AND CUPON.cuenta = ".$cuenta."
+                           AND CUPON.cod_iva = '".$tipo_iva."'
+                           AND CUPON.nro_factura = ".$cupon;
+
+                $sth = $database->pdo->prepare($sql);
+
+                if( !$sth->execute()  ){
+                    $logger->debug( "backend_aguas:resumen_pago 1.6 error:".$sql." ".print_r($sth->errorInfo(),true));
+                    return "backend_aguas:resumen_pago 1.6 error".print_r($sth->errorInfo(),true);
+                }
+
+                $cupones = $sth->fetchAll()[0];
+
+                $comprobantes[]=["id_comprobante"=> $id_empresa."-".$id_sucursal."-".$cupon."-".$tipo_iva,
+                                "total"=>$cupones["IMPORTE"],
+                                "fecha_vto"=>$cupones["FECHA_1VTO"],
+                                "descripcion"=>"Factura Cupon".$id_empresa."-".$tipo_iva."-".$cupones["NRO_FACTURA"]
+                            ];
+                $total = $total+$cupones["IMPORTE"];                     
             }
+
         }
 
         $sth = $database->pdo->prepare("begin :resultado := pkg_backend.generar_facturas(to_date(:fecha_actualizacion,'YYYY-MM-DD HH24:MI:SS'));end;");
