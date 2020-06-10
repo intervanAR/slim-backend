@@ -926,8 +926,8 @@ pkg_convenios.datos_cuota(
         $facturas=[];
         foreach ($cuentas as $key_cta => $value_cta) {
             list($id_empresa,$id_sucursal,$cuenta)= preg_split("/-/",$value_cta["id_cuenta"]);      
-            $sql = "SELECT   id_sucursal || '-' || cod_iva || '-' || nro_factura \"nro_factura\",
-                             id_empresa || '-' || id_sucursal|| '-' || nro_factura ||'-'||cod_iva \"id_comprobante\",
+            $sql = "SELECT   a.id_sucursal || '-' || a.cod_iva || '-' || a.nro_factura \"nro_factura\",
+                             a.id_empresa || '-' || a.id_sucursal|| '-' || a.nro_factura ||'-'||a.cod_iva \"id_comprobante\",
                              'Servicio' \"descripcion_factura\",
                              CASE
                                 WHEN fecha_1vto >= TRUNC (SYSDATE)
@@ -943,18 +943,33 @@ pkg_convenios.datos_cuota(
                                    THEN importe_2vto + ley25413_2 + iva_2vto
                                 ELSE importe_1vto + ley25413 + iva_1vto
                              END \"importe_1vto\",
-                             a.tipo_servicio tipo, 
+                             a.tipo_servicio \"tipo\", 
                              b.descripcion \"desc_tipo_servicio\",
                              b.descripcion \"impuesto\",
                              to_char(fecha_1vto,'yyyy') \"anio\",
-                             DECODE (pagada, 'S', 'Pagada', 'Impaga') \"desc_estado\",
+                             case when pagada='S' 
+                                then 'Pagada'
+                                when (select count(1) from deudas
+                                        where id_empresa=c.id_empresa
+                                          and id_sucursal=c.id_sucursal
+                                          and cuenta=c.cuenta
+                                          and id_deuda=c.id_origen
+                                          and id_deuda=c.id_origen
+                                          and pagado='S' ) > 0                                    
+                                then 'Pagada'
+                                else 'Impaga' 
+                             end \"desc_estado\",
                              CASE
                                 WHEN pagada = 'N' AND fecha_2vto >= TRUNC (SYSDATE)
                                    THEN 'S'
                                 ELSE 'N'
                              END \"pagar\"
-                        FROM facturas a, tipos_servicios b
+                        FROM facturas a, tipos_servicios b, detalles_facturas c
                        WHERE a.tipo_servicio = b.tipo_servicio
+                         AND a.id_empresa=c.id_empresa
+                         and a.id_sucursal=c.id_sucursal
+                         and a.cod_iva=c.cod_iva
+                         and a.nro_factura=c.nro_factura
                          AND pkg_facturacion.factura_original (a.id_empresa,
                                                                a.id_sucursal,
                                                                a.cod_iva,
@@ -963,8 +978,8 @@ pkg_convenios.datos_cuota(
                          AND a.id_empresa=".$id_empresa."
                          AND a.id_sucursal=".$id_sucursal."
                          AND a.cuenta=".$cuenta."
-                    ORDER BY fecha_1vto 
-                    ";
+                    ORDER BY fecha_1vto"
+                    ;
 
             $sth = $database->pdo->prepare($sql);
 
