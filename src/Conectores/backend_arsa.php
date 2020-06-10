@@ -127,7 +127,37 @@ class backend_arsa extends backend_aguas
                             cup2.IMPORTE_1VTO C2_NETO,
                             cup2.IVA_1VTO C2_IVA, 
                             DECODE( SIGN(TRUNC(SYSDATE)-TRUNC(CUP2.FECHA_1VTO) ) , 1 , 'S','N' ) C2_VENCIDA,
-                            cup2.fecha_1vto c2_vto
+                            cup2.fecha_1vto c2_vto,
+(select nvl(max('S'),'N') from facturas fac, detalles_facturas dfac 
+where fac.id_empresa=dfac.id_empresa
+and fac.id_sucursal=dfac.id_sucursal
+and fac.cod_iva=dfac.cod_iva
+and fac.NRO_FACTURA=dfac.nro_factura
+and DFAC.id_empresa=a.id_empresa and dFAC.id_sucursal=a.id_sucursal 
+and DFAC.NRO_Factura= a.nro_factura and DFAC.cod_iva=a.cod_iva 
+AND DFAC.CUOTA=a.cuota AND DFAC.ORIGEN=a.origen AND DFAC.ID_ORIGEN=a.id_origen
+and  exists ( select 1 from DETALLES_FACTURAS DCUP, FACTURAS CUP,cobros_facturas cob 
+WHERE dcup.id_empresa=dfac.id_empresa
+and dcup.id_sucursal=dfac.id_sucursal
+and dcup.cod_iva=dfac.cod_iva
+and dcup.cuenta=dfac.cuenta
+and dcup.CUOTA=DFAC.CUOTA
+AND DCUP.ORIGEN=dfac.origen
+and dcup.id_origen=dfac.id_origen
+and dcup.id_empresa=cup.id_empresa
+and dcup.id_sucursal=cup.id_sucursal
+and dcup.cod_iva=cup.cod_iva
+and dcup.nro_factura=cup.nro_factura
+and pkg_facturacion.FACTURA_ORIGINAL(cup.id_empresa,
+      cup.id_sucursal,
+      cup.cod_iva,
+      cup.nro_factura)='N'
+and cup.pagada='S' 
+and cob.id_empresa_Factura=cup.id_empresa
+and cob.id_sucursal_factura=cup.id_sucursal
+and cob.cod_iva=cup.cod_iva
+and cob.nro_factura=cup.nro_factura)
+) cupon_pago 
                           FROM detalles_facturas a, facturas b, facturas cup1, facturas cup2
                          WHERE a.id_empresa = ".$cta_datos["ID_EMPRESA"]."
                            AND a.id_sucursal = ".$cta_datos["ID_SUCURSAL"]."
@@ -168,6 +198,7 @@ class backend_arsa extends backend_aguas
                     if( isset($cupones["C1"]) && 
                         $cupones["C1"]!== null && 
                         $cupones["C1_PAGADA"]==="N" && 
+                        $cupones["CUPON_PAGO"]==="N" &&
                         $cupones["C1_VENCIDA"]==="S" && 
                         $cupones["C2_VENCIDA"]==="N" ){
                         //
@@ -183,6 +214,7 @@ class backend_arsa extends backend_aguas
                     if( isset($cupones["C1"]) && 
                         $cupones["C1"]!== null && 
                         $cupones["C1_PAGADA"]==="N" && 
+                        $cupones["CUPON_PAGO"]==="N" &&
                         $cupones["C1_VENCIDA"]==="N" ){
                         //
                         // Cupon1 vencido, CUpon2 sin vencer => Refacturar CUPON1
