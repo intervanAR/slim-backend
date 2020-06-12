@@ -437,7 +437,107 @@ class backend_clubonline implements backend_servicio
 
 
     public function get_facturas($filtro){
-        return array("resultado"=>'NO_IMPLEMENTADO');
+
+      $logger = \Backend\SlimBackend::Backend()->logger;
+
+      $logger->debug( "get_facturas".json_encode($filtro));
+
+      $id_empresa = \Backend\SlimBackend::Backend()->settings['id_empresa'];
+
+      $taxId = \Backend\SlimBackend::getParametros($id_empresa,"taxId",0,100,false)[0]["valor"];
+      $privateKey = \Backend\SlimBackend::getParametros($id_empresa,"privateKey",0,100,false)[0]["valor"];
+
+      if (isset($filtro["nro_documento"]))
+          $nro_documento= $filtro["nro_documento"];
+      else
+          $nro_documento= -1;     
+
+
+      $data = ["taxId"  => $taxId,
+               "privateKey" =>$privateKey,
+               "personalId" => $nro_documento+0 ];
+
+
+/*
+[{"nro_factura":"241949", 
+"id_comprobante":"489491",
+"descripcion_factura":"5\/2017",
+"fecha_1vto":"2017-11-24 00:00:00",
+"importe_1vto":"229",
+"importe_2vto":"230.13",
+"tipo":"1",
+"desc_tipo":"Tasa\/Impuesto",
+"desc_estado":"Pagada",
+"estado":"1",
+"anio":"2017",
+"impuesto":"TASA DESARROLLO URBANO Y SERV. RETRIBUIDOS",
+"pagar":"N",
+"cuenta":{"alias_cuenta":"plan anual","id_cuenta":"5862","tipo_cuenta":"TCR1","nro_cuenta":"3258","desc_tipo_cuenta":"Partida","descripcion":"Partida 3258 SANTIAGO QUIROGA","responsable_pago":"SANTIAGO QUIROGA","id_persona":"4724","enviar_mail":"N","pa_activo":"N","pa_fecha_desde":"","pa_fecha_hasta":"","id_nro_cuenta":"3258"}
+}
+
+ {
+ "number": "0-10",
+ "creditDate": "01/05/2020",
+ "amount": 2500.0,
+ "comments": "",
+ "business": "Cuota Social",
+ "collectionNumber": 6,
+ "dueDate": "31/05/2020",
+ "document": "Ticket",
+ "clubMember": "Machado, Fernando",
+ "description": "Cuota Social > May-20 > Grupo Familiar",
+ "collectionDate": "29/05/2020"
+ }
+
+*/
+      $rta = self::CallAPI( $id_empresa , "POST", "Collections" , $data);
+
+      if($rta["httpCode"]===200){
+        $datos=$rta["response"];  
+      }else{
+        $datos =[];
+      }
+
+      $facturas = array_map(
+              function($row) use($nro_documento) 
+              { 
+                $vto = substr($row["dueDate"],6,4)."-".
+                                  substr($row["dueDate"],3,2)."-".
+                                  substr($row["dueDate"],0,2);
+                return                 
+                      ["nro_factura"=>$row["number"], 
+                       "id_comprobante"=>0,
+                        "descripcion_factura"=>$row["description"],
+                        "fecha_1vto"=>$vto,
+                        "importe_1vto"=>$row["amount"],
+                        "importe_2vto"=>$row["amount"],
+                        "tipo"=>"1",
+                        "desc_tipo"=>$row["business"],
+                        "desc_estado"=>"Emitida",
+                        "estado"=>"1",
+                        "anio"=>substr($row["dueDate"],6,4),
+                        "impuesto"=>$row["business"],
+                        "pagar"=>"N",
+                        "cuenta"=>[
+                          "alias_cuenta"=>"",
+                            "id_cuenta"=>$nro_documento,
+                            "tipo_cuenta"=>"SOC",
+                            "nro_cuenta"=>$nro_documento,
+                            "desc_tipo_cuenta"=>"Socio",
+                            "descripcion"=>$row["clubMember"],
+                            "responsable_pago"=>$row["clubMember"],
+                            "id_persona"=>$nro_documento,
+                            "enviar_mail"=>"N",
+                            "pa_activo"=>"N",
+                            "pa_fecha_desde"=>"",
+                            "pa_fecha_hasta"=>"",
+                            "id_nro_cuenta"=>"0"
+                        ]
+                      ]; 
+              },
+              $datos);
+      return $facturas; 
+
     }
 
     public function alta_debito_automatico($parametros)
