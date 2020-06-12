@@ -26,6 +26,7 @@ class backend_arsa extends backend_aguas
         $coef_ley25413 = 1.012;
        	// Fecha actual para comparar si es deuda o prox vto.
         $hoy = date("Y-m-d")." 24:59:59";
+        $hoy_00 = date("Y-m-d")." 00:00:00";
 
         if( isset($parametros['tipoDeuda']))
             $tipoDeuda= $parametros['tipoDeuda'];
@@ -292,8 +293,7 @@ and cob.nro_factura=cup.nro_factura)
 		        	//
 		        	// Verificar si va en proximos vencimientos o en deudas
 		        	//
-					if( ($hoy >= $deu["deu_vto"] &&  !$cupon1 && !$cupon2) ||
-                        $cupon1) {
+					if($hoy > $deu["deu_vto"] &&  !$cupon1 && !$cupon2){
 						$deuda[] = ["cont_id"=> $cta_datos["ID_PERSONA"],
 								"cont_desc1"=> $cta_datos["RESPONSABLE"],
 								"cont_desc2"=> "",
@@ -318,7 +318,7 @@ and cob.nro_factura=cup.nro_factura)
 								];
 					}
 
-                    if( $hoy< $deu["deu_vto"] && $cupon1 ) {
+                    if( $hoy_00<= $deu["deu_vto"] && $cupon1 ) {
                         $vto_deuda = $deu["deu_vto"];
                         if( $cupon1){
                             $neto = $neto1;
@@ -352,7 +352,7 @@ and cob.nro_factura=cup.nro_factura)
                                 ];
                     }
 
-                    if( $hoy< $deu["deu_vto"] || $cupon2 ) {
+                    if( $hoy_00<= $deu["deu_vto"] || $cupon2 ) {
                         $vto_deuda = $deu["deu_vto"];
                         if( $cupon2){
                             $neto = $neto2;
