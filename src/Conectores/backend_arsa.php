@@ -90,8 +90,9 @@ class backend_arsa extends backend_aguas
         	//
             $campos = ["DEUDAS.ID_DEUDA",
               "DEUDAS.FECHA_VTO(deu_vto)",
-              "DEUDAS.TIPO_IVA"
-               ];
+              "DEUDAS.TIPO_IVA",
+              "VERIFICAR"=>\Medoo\Medoo::raw('SIGN((trunc(sysdate)-70) - DEUDAS.FECHA_VTO)') 
+            ];
             $condicion["DEUDAS.PAGADO"]="N";            
             $condicion["DEUDAS.EN_CONVENIO"]="N";
             $condicion["DEUDAS.ID_EMPRESA"]=$cta_datos["ID_EMPRESA"]; 
@@ -104,6 +105,7 @@ class backend_arsa extends backend_aguas
            		$condicion["DEUDAS.FECHA_VTO[>]"]= \Medoo\Medoo::raw('TRUNC(SYSDATE)-60');
            	}
             $datos =  $consulta->select($campos,$condicion);
+            $logger->debug('backend_aguas:consulta_deuda 2 '.print_r($cta_consulta->db->log(),true));
             if( $consulta->error() ){
 
               $logger->debug('backend_aguas:consulta_deuda 2 '.print_r($cta_consulta->db->log(),true));
@@ -116,79 +118,6 @@ class backend_arsa extends backend_aguas
 	        	// Consultar por cada deuda, los intereses de actualización y el concepto
 	        	//
             	try{
-                    $sql = "SELECT b.pagada , 
-                            cup1.NRO_FACTURA C1,
-                            cup1.pagada   c1_pagada, 
-                            cup1.IMPORTE_1VTO C1_NETO,
-                            cup1.IVA_1VTO C1_IVA, 
-                            cup1.fecha_1vto c1_vto,
-                            DECODE( SIGN(TRUNC(SYSDATE)-TRUNC(CUP1.FECHA_1VTO) ) , 1 , 'S','N' ) C1_VENCIDA, 
-                            cup2.NRO_FACTURA C2,
-                            cup2.pagada c2_pagada, 
-                            cup2.IMPORTE_1VTO C2_NETO,
-                            cup2.IVA_1VTO C2_IVA, 
-                            DECODE( SIGN(TRUNC(SYSDATE)-TRUNC(CUP2.FECHA_1VTO) ) , 1 , 'S','N' ) C2_VENCIDA,
-                            cup2.fecha_1vto c2_vto,
-(select nvl(max('S'),'N') from facturas fac, detalles_facturas dfac 
-where fac.id_empresa=dfac.id_empresa
-and fac.id_sucursal=dfac.id_sucursal
-and fac.cod_iva=dfac.cod_iva
-and fac.NRO_FACTURA=dfac.nro_factura
-and DFAC.id_empresa=a.id_empresa and dFAC.id_sucursal=a.id_sucursal 
-and DFAC.NRO_Factura= a.nro_factura and DFAC.cod_iva=a.cod_iva 
-AND DFAC.CUOTA=a.cuota AND DFAC.ORIGEN=a.origen AND DFAC.ID_ORIGEN=a.id_origen
-and  exists ( select 1 from DETALLES_FACTURAS DCUP, FACTURAS CUP,cobros_facturas cob 
-WHERE dcup.id_empresa=dfac.id_empresa
-and dcup.id_sucursal=dfac.id_sucursal
-and dcup.cod_iva=dfac.cod_iva
-and dcup.cuenta=dfac.cuenta
-and dcup.CUOTA=DFAC.CUOTA
-AND DCUP.ORIGEN=dfac.origen
-and dcup.id_origen=dfac.id_origen
-and dcup.id_empresa=cup.id_empresa
-and dcup.id_sucursal=cup.id_sucursal
-and dcup.cod_iva=cup.cod_iva
-and dcup.nro_factura=cup.nro_factura
-and pkg_facturacion.FACTURA_ORIGINAL(cup.id_empresa,
-      cup.id_sucursal,
-      cup.cod_iva,
-      cup.nro_factura)='N'
-and cup.pagada='S' 
-and cob.id_empresa_Factura=cup.id_empresa
-and cob.id_sucursal_factura=cup.id_sucursal
-and cob.cod_iva=cup.cod_iva
-and cob.nro_factura=cup.nro_factura)
-) cupon_pago 
-                          FROM detalles_facturas a, facturas b, facturas cup1, facturas cup2
-                         WHERE a.id_empresa = ".$cta_datos["ID_EMPRESA"]."
-                           AND a.id_sucursal = ".$cta_datos["ID_SUCURSAL"]."
-                           AND a.cuenta = ".$cta_datos["CUENTA"]."
-                           AND a.origen = 'DEU'
-                           AND a.cod_iva = '".$deu["TIPO_IVA"]."'
-                           AND a.id_origen =".$deu["ID_DEUDA"]."
-                           AND a.id_empresa = b.id_empresa
-                           AND a.id_sucursal = b.id_sucursal
-                           AND a.cod_iva = b.cod_iva
-                           AND a.nro_factura = b.nro_factura
-                           and SUBSTR (detalle, 1, 1)='#'
-                           and b.id_empresa=cup1.id_empresa(+)
-                           and b.ID_SUCURSAL=cup1.id_sucursal(+)
-                           and b.NRO_FACT_CUPON1=cup1.NRO_FACTURA(+)
-                           and b.cod_iva=cup1.cod_iva(+)
-                           and b.id_empresa=cup2.id_empresa(+)
-                           and b.ID_SUCURSAL=cup2.id_sucursal(+)
-                           and b.NRO_FACT_CUPON2=cup2.NRO_FACTURA(+)
-                           and b.cod_iva=cup2.cod_iva(+)";   
-
-                    $sth = $database->pdo->prepare($sql);
-
-
-                    if( !$sth->execute()  ){
-                        $logger->debug( "backend_aguas:consulta_deuda 2.5 error".print_r($sth->errorInfo(),true));
-                        return "backend_aguas:consulta_deuda 2.5 error".print_r($sth->errorInfo(),true);
-                    }
-
-                    $cupones = $sth->fetchAll()[0];
 
                     $actualizar=true;
                     $accion = null;
@@ -196,52 +125,129 @@ and cob.nro_factura=cup.nro_factura)
                     $cupon2 = false;
                     $c1_vto = null; 
                     $c2_vto = null;                    
-                    if( isset($cupones["C1"]) && 
-                        $cupones["C1"]!== null && 
-                        $cupones["C1_PAGADA"]==="N" && 
-                        $cupones["CUPON_PAGO"]==="N" &&
-                        $cupones["C1_VENCIDA"]==="S" && 
-                        $cupones["C2_VENCIDA"]==="N" ){
-                        //
-                        // Cupon1 vencido, CUpon2 sin vencer => Refacturar CUPON1
-                        //
-                        $neto = $cupones["C1_NETO"];
-                        $iva  = $cupones["C1_IVA"];
-                        $interes_neto = 0;
-                        $iva_interes = 0;
-                        $actualizar = false;
-                        $cupon1 = true;
-                    }
-                    if( isset($cupones["C1"]) && 
-                        $cupones["C1"]!== null && 
-                        $cupones["C1_PAGADA"]==="N" && 
-                        $cupones["CUPON_PAGO"]==="N" &&
-                        $cupones["C1_VENCIDA"]==="N" ){
-                        //
-                        // Cupon1 vencido, CUpon2 sin vencer => Refacturar CUPON1
-                        //
-                        $neto1 = $cupones["C1_NETO"];
-                        $iva1  = $cupones["C1_IVA"];
-                        $c1_vto = $cupones["C1_VTO"];
-                        $accion1 = "0-DEVC1-".$cupones["C1"];
-                        $interes_neto1 = 0;
-                        $iva_interes1 = 0;
-                        $actualizar = false;
-                        $cupon1 = true;
-                    }
-                    if( isset($cupones["C1"]) && 
-                        $cupones["C1"]!== null && 
-                        $cupones["C2_PAGADA"]==="N" && 
-                        $cupones["C2_VENCIDA"]==="N" ){
-                        //
-                        // Cupon1 pagadao, CUpon2 sin vencer => Es solo CUPON2
-                        //
-                        $neto2 = $cupones["C2_NETO"];
-                        $iva2  = $cupones["C2_IVA"];
-                        $c2_vto = $cupones["C2_VTO"];
-                        $accion2 = "0-DEVC2-".$cupones["C2"];
-                        $actualizar = false;
-                        $cupon2 = true;
+
+                    if( $deu["VERIFICAR"]!=="1") {
+                        $sql = "SELECT b.pagada , 
+                                cup1.NRO_FACTURA C1,
+                                cup1.pagada   c1_pagada, 
+                                cup1.IMPORTE_1VTO C1_NETO,
+                                cup1.IVA_1VTO C1_IVA, 
+                                cup1.fecha_1vto c1_vto,
+                                DECODE( SIGN(TRUNC(SYSDATE)-TRUNC(CUP1.FECHA_1VTO) ) , 1 , 'S','N' ) C1_VENCIDA, 
+                                cup2.NRO_FACTURA C2,
+                                cup2.pagada c2_pagada, 
+                                cup2.IMPORTE_1VTO C2_NETO,
+                                cup2.IVA_1VTO C2_IVA, 
+                                DECODE( SIGN(TRUNC(SYSDATE)-TRUNC(CUP2.FECHA_1VTO) ) , 1 , 'S','N' ) C2_VENCIDA,
+                                cup2.fecha_1vto c2_vto,
+                            (select nvl(max('S'),'N') from facturas fac, detalles_facturas dfac 
+                            where fac.id_empresa=dfac.id_empresa
+                            and fac.id_sucursal=dfac.id_sucursal
+                            and fac.cod_iva=dfac.cod_iva
+                            and fac.NRO_FACTURA=dfac.nro_factura
+                            and DFAC.id_empresa=a.id_empresa and dFAC.id_sucursal=a.id_sucursal 
+                            and DFAC.NRO_Factura= a.nro_factura and DFAC.cod_iva=a.cod_iva 
+                            AND DFAC.CUOTA=a.cuota AND DFAC.ORIGEN=a.origen AND DFAC.ID_ORIGEN=a.id_origen
+                            and  exists ( select 1 from DETALLES_FACTURAS DCUP, FACTURAS CUP,cobros_facturas cob 
+                            WHERE dcup.id_empresa=dfac.id_empresa
+                            and dcup.id_sucursal=dfac.id_sucursal
+                            and dcup.cod_iva=dfac.cod_iva
+                            and dcup.cuenta=dfac.cuenta
+                            and dcup.CUOTA=DFAC.CUOTA
+                            AND DCUP.ORIGEN=dfac.origen
+                            and dcup.id_origen=dfac.id_origen
+                            and dcup.id_empresa=cup.id_empresa
+                            and dcup.id_sucursal=cup.id_sucursal
+                            and dcup.cod_iva=cup.cod_iva
+                            and dcup.nro_factura=cup.nro_factura
+                            and pkg_facturacion.FACTURA_ORIGINAL(cup.id_empresa,
+                                  cup.id_sucursal,
+                                  cup.cod_iva,
+                                  cup.nro_factura)='N'
+                            and cup.pagada='S' 
+                            and cob.id_empresa_Factura=cup.id_empresa
+                            and cob.id_sucursal_factura=cup.id_sucursal
+                            and cob.cod_iva=cup.cod_iva
+                            and cob.nro_factura=cup.nro_factura)
+                            ) cupon_pago 
+                              FROM detalles_facturas a, facturas b, facturas cup1, facturas cup2
+                             WHERE a.id_empresa = ".$cta_datos["ID_EMPRESA"]."
+                               AND a.id_sucursal = ".$cta_datos["ID_SUCURSAL"]."
+                               AND a.cuenta = ".$cta_datos["CUENTA"]."
+                               AND a.origen = 'DEU'
+                               AND a.cod_iva = '".$deu["TIPO_IVA"]."'
+                               AND a.id_origen =".$deu["ID_DEUDA"]."
+                               AND a.id_empresa = b.id_empresa
+                               AND a.id_sucursal = b.id_sucursal
+                               AND a.cod_iva = b.cod_iva
+                               AND a.nro_factura = b.nro_factura
+                               and SUBSTR (detalle, 1, 1)='#'
+                               and b.id_empresa=cup1.id_empresa(+)
+                               and b.ID_SUCURSAL=cup1.id_sucursal(+)
+                               and b.NRO_FACT_CUPON1=cup1.NRO_FACTURA(+)
+                               and b.cod_iva=cup1.cod_iva(+)
+                               and b.id_empresa=cup2.id_empresa(+)
+                               and b.ID_SUCURSAL=cup2.id_sucursal(+)
+                               and b.NRO_FACT_CUPON2=cup2.NRO_FACTURA(+)
+                               and b.cod_iva=cup2.cod_iva(+)";   
+
+                        $sth = $database->pdo->prepare($sql);
+
+                        if( !$sth->execute()  ){
+                            $logger->debug( "backend_aguas:consulta_deuda 2.5 error".print_r($sth->errorInfo(),true));
+                            return "backend_aguas:consulta_deuda 2.5 error".print_r($sth->errorInfo(),true);
+                        }
+
+                        $cupones = $sth->fetchAll()[0];
+
+                        if( isset($cupones["C1"]) && 
+                            $cupones["C1"]!== null && 
+                            $cupones["C1_PAGADA"]==="N" && 
+                            $cupones["CUPON_PAGO"]==="N" &&
+                            $cupones["C1_VENCIDA"]==="S" && 
+                            $cupones["C2_VENCIDA"]==="N" ){
+                            //
+                            // Cupon1 vencido, CUpon2 sin vencer => Refacturar CUPON1
+                            //
+                            $neto1 = $cupones["C1_NETO"];
+                            $iva1  = $cupones["C1_IVA"];
+                            $c1_vto = $cupones["C1_VTO"];
+                            $interes_neto = 0;
+                            $iva_interes = 0;
+                            $actualizar = false;
+                            $cupon1 = true;
+                        }
+                        if( isset($cupones["C1"]) && 
+                            $cupones["C1"]!== null && 
+                            $cupones["C1_PAGADA"]==="N" && 
+                            $cupones["CUPON_PAGO"]==="N" &&
+                            $cupones["C1_VENCIDA"]==="N" ){
+                            //
+                            // Cupon1 vencido, CUpon2 sin vencer => Refacturar CUPON1
+                            //
+                            $neto1 = $cupones["C1_NETO"];
+                            $iva1  = $cupones["C1_IVA"];
+                            $c1_vto = $cupones["C1_VTO"];
+                            $accion1 = "0-DEVC1-".$cupones["C1"];
+                            $interes_neto1 = 0;
+                            $iva_interes1 = 0;
+                            $actualizar = false;
+                            $cupon1 = true;
+                        }
+                        if( isset($cupones["C1"]) && 
+                            $cupones["C1"]!== null && 
+                            $cupones["C2_PAGADA"]==="N" && 
+                            $cupones["C2_VENCIDA"]==="N" ){
+                            //
+                            // Cupon1 pagadao, CUpon2 sin vencer => Es solo CUPON2
+                            //
+                            $neto2 = $cupones["C2_NETO"];
+                            $iva2  = $cupones["C2_IVA"];
+                            $c2_vto = $cupones["C2_VTO"];
+                            $accion2 = "0-DEVC2-".$cupones["C2"];
+                            $actualizar = false;
+                            $cupon2 = true;
+                        }
                     }
                     if( $actualizar) {
     					$sth = $database->pdo->prepare("CALL PKG_DEUDA.DATOS_ID_DEUDA(:id_empresa
@@ -293,7 +299,7 @@ and cob.nro_factura=cup.nro_factura)
 		        	//
 		        	// Verificar si va en proximos vencimientos o en deudas
 		        	//
-					if($hoy > $deu["deu_vto"] &&  !$cupon1 && !$cupon2){
+					if($hoy_00 > $deu["deu_vto"] &&  !$cupon1 && !$cupon2){
 						$deuda[] = ["cont_id"=> $cta_datos["ID_PERSONA"],
 								"cont_desc1"=> $cta_datos["RESPONSABLE"],
 								"cont_desc2"=> "",
@@ -318,15 +324,49 @@ and cob.nro_factura=cup.nro_factura)
 								];
 					}
 
-                    if( $hoy_00<= $deu["deu_vto"] && $cupon1 ) {
-                        $vto_deuda = $deu["deu_vto"];
-                        if( $cupon1){
-                            $neto = $neto1;
-                            $iva = $iva1;
-                            $interes_neto = 0;
-                            $iva_interes = 0;
-                            $vto_deuda=$c1_vto;
-                        }
+                    //
+                    // Cupon 1 vencido
+                    //
+                    if( $hoy_00 > $deu["deu_vto"] && $cupon1 ) {
+                        $neto = $neto1;
+                        $iva = $iva1;
+                        $interes_neto = 0;
+                        $iva_interes = 0;
+                        $vto_deuda=$c1_vto;
+                        $deuda[] = ["cont_id"=> $cta_datos["ID_PERSONA"],
+                                "cont_desc1"=> $cta_datos["RESPONSABLE"],
+                                "cont_desc2"=> "",
+                                "cue_id"=> $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"],
+                                "cue_desc1"=> $cta_datos["CUENTA"]." ".(isset($cuenta["alias_cuenta"]) ? $cuenta["alias_cuenta"] : $cta_datos["RESPONSABLE"]),
+                                "cue_desc2"=>  $cta_datos['DESC_CALLE']." ".$cta_datos['INMUEBLE_NRO'].
+                        ( isset($cta_datos['INMUEBLE_PISO']) ? " ".$cta_datos['INMUEBLE_PISO'] : "" ) .
+                        ( isset($cta_datos['INMUEBLE_DTO']) ? " ".$cta_datos['INMUEBLE_DTO'] : "" ) .
+                        ( isset($cta_datos['DESC_LOCALIDAD']) ? " ".$cta_datos['DESC_LOCALIDAD'] : "" ),    
+                                "imp_id" =>"1",
+                                "imp_desc1"=>$cta_datos["DESC_SERVICIO"],
+                                "imp_desc2"=>"",
+                                "per_id"=>$vto_deuda,
+                                "per_desc1"=>"",
+                                "per_desc2"=>"",
+                                "deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$deu["TIPO_IVA"]."-".$deu["ID_DEUDA"].
+                                    (isset($accion1) ? "-".$accion1:""),
+                                "deu_desc1" => $concepto." V:".substr($vto_deuda,8,2)."/".substr($vto_deuda,5,2)."/".substr($vto_deuda,0,4) . " C1",
+                                "deu_desc2" => "",
+                                "deu_vto"=>$vto_deuda,
+                                "deu_capital"=>round(($neto+$iva)* $coef_ley25413,2),
+                                "deu_recargo"=>round(($interes_neto+$iva_interes) * $coef_ley25413,2)
+                                ];
+                    }
+
+                    //
+                    // Cupon 1 NO VENCIDO
+                    //
+                    if( $hoy_00 <= $deu["deu_vto"] && $cupon1 ) {
+                        $neto = $neto1;
+                        $iva = $iva1;
+                        $interes_neto = 0;
+                        $iva_interes = 0;
+                        $vto_deuda=$c1_vto;
                         $prox[] = ["cont_id"=> $cta_datos["ID_PERSONA"],
                                 "cont_desc1"=> $cta_datos["RESPONSABLE"],
                                 "cont_desc2"=> "",
@@ -344,7 +384,7 @@ and cob.nro_factura=cup.nro_factura)
                                 "per_desc2"=>"",
                                 "deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$deu["TIPO_IVA"]."-".$deu["ID_DEUDA"].
                                     (isset($accion1) ? "-".$accion1:""),
-                                "deu_desc1" => $concepto." V:".substr($vto_deuda,8,2)."/".substr($vto_deuda,5,2)."/".substr($vto_deuda,0,4),
+                                "deu_desc1" => $concepto." V:".substr($vto_deuda,8,2)."/".substr($vto_deuda,5,2)."/".substr($vto_deuda,0,4). " C1",
                                 "deu_desc2" => "",
                                 "deu_vto"=>$vto_deuda,
                                 "deu_capital"=>round(($neto+$iva)* $coef_ley25413,2),
@@ -352,15 +392,12 @@ and cob.nro_factura=cup.nro_factura)
                                 ];
                     }
 
-                    if( $hoy_00<= $deu["deu_vto"] || $cupon2 ) {
-                        $vto_deuda = $deu["deu_vto"];
-                        if( $cupon2){
-                            $neto = $neto2;
-                            $iva = $iva2;
-                            $interes_neto = 0;
-                            $iva_interes = 0;
-                            $vto_deuda=$c2_vto;
-                        }
+                    if( $cupon2 ) {
+                        $neto = $neto2;
+                        $iva = $iva2;
+                        $interes_neto = 0;
+                        $iva_interes = 0;
+                        $vto_deuda=$c2_vto;
 						$prox[] = ["cont_id"=> $cta_datos["ID_PERSONA"],
 								"cont_desc1"=> $cta_datos["RESPONSABLE"],
 								"cont_desc2"=> "",
@@ -378,7 +415,7 @@ and cob.nro_factura=cup.nro_factura)
                 				"per_desc2"=>"",
                 				"deu_id" => $cta_datos["ID_EMPRESA"]."-".$cta_datos["ID_SUCURSAL"]."-".$cta_datos["CUENTA"]."-".$deu["TIPO_IVA"]."-".$deu["ID_DEUDA"].
                                     (isset($accion2) ? "-".$accion2:""),
-                				"deu_desc1" => $concepto." V:".substr($vto_deuda,8,2)."/".substr($vto_deuda,5,2)."/".substr($vto_deuda,0,4),
+                				"deu_desc1" => $concepto." V:".substr($vto_deuda,8,2)."/".substr($vto_deuda,5,2)."/".substr($vto_deuda,0,4) . " C2",
                 				"deu_desc2" => "",
                 				"deu_vto"=>$vto_deuda,
                 				"deu_capital"=>round(($neto+$iva)* $coef_ley25413,2),

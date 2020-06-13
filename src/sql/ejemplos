@@ -28,4 +28,4 @@ curl  https://s002.myclubonline.com.ar:8181/Sasha/CollectionsOnLine/API/BalanceC
 11111111
 
 
-curl https://s002.myclubonline.com.ar:8181/Sasha/CollectionsOnLine/API/CollectionResponse --data [{\"idCreditDueDate\":196927,\"collected\":\"true\"},{\"idCreditDueDate\":197393,\"collected\":\"true\"},{\"idCreditDueDate\":210914,\"collected\":\"true\"}]
+curl https://s002.myclubonline.com.ar:8181/Sasha/CollectionsOnLine/API/CollectionsResponse --data "[{\"idCreditDueDate\":509579,\"collected\":\"true\"}]" -k
