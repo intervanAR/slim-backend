@@ -353,10 +353,6 @@ class backend_clubonline implements backend_servicio
       return array("rta" => "Error", 'id_operacion_pago' => -1,"message"=>$rta["response"]);
     }
 
-    public function get_reporte_factura($parametros){
-        return array("resultado"=>'NO_IMPLEMENTADO');
-    }
-
     private function get_datos_impresion($seleccion){
         return array("resultado"=>'NO_IMPLEMENTADO');
     }
@@ -489,14 +485,32 @@ class backend_clubonline implements backend_servicio
  "collectionDate": "29/05/2020"
  }
 
+{
+ "idCreditDueDate": 509859,
+ "number": "0-12",
+ "creditDate": "01/05/2020",
+ "amount": 500.0,
+ "punishmentAmount": 0,
+ "balance": 500.0,
+ "comments": "",
+ "business": "Cuota Social",
+ "dueDate": "31/05/2020",
+ "document": "Ticket",
+ "clubMember": "Machado, Fernando",
+ "description": "Cuota Social > May-20 > Grupo Familiar",
+ "status": "Pendiente"
+ }
+
 */
-      $rta = self::CallAPI( $id_empresa , "POST", "Collections" , $data);
+      $rta = self::CallAPI( $id_empresa , "POST", "Credits" , $data);
 
       if($rta["httpCode"]===200){
         $datos=$rta["response"];  
       }else{
         $datos =[];
       }
+
+
 
       $facturas = array_map(
               function($row) use($nro_documento) 
@@ -506,14 +520,14 @@ class backend_clubonline implements backend_servicio
                                   substr($row["dueDate"],0,2);
                 return                 
                       ["nro_factura"=>$row["number"], 
-                       "id_comprobante"=>0,
+                       "id_comprobante"=>$row["idCreditDueDate"],
                         "descripcion_factura"=>$row["description"],
                         "fecha_1vto"=>$vto,
                         "importe_1vto"=>$row["amount"],
                         "importe_2vto"=>$row["amount"],
                         "tipo"=>"1",
                         "desc_tipo"=>$row["business"],
-                        "desc_estado"=>"Emitida",
+                        "desc_estado"=>$row["status"],
                         "estado"=>"1",
                         "anio"=>substr($row["dueDate"],6,4),
                         "impuesto"=>$row["business"],
@@ -539,6 +553,39 @@ class backend_clubonline implements backend_servicio
       return $facturas; 
 
     }
+
+    public function get_reporte_factura($parametros){
+      $logger = \Backend\SlimBackend::Backend()->logger;
+
+      $logger->debug( "get_facturas".json_encode($parametros));
+
+      $id_empresa = \Backend\SlimBackend::Backend()->settings['id_empresa'];
+
+      $taxId = \Backend\SlimBackend::getParametros($id_empresa,"taxId",0,100,false)[0]["valor"];
+      $privateKey = \Backend\SlimBackend::getParametros($id_empresa,"privateKey",0,100,false)[0]["valor"];
+
+      if (isset($parametros["id_comprobante"]))
+          $id_comprobante= $parametros["id_comprobante"];
+      else
+          $id_comprobante= -1;     
+
+
+      $data = ["taxId"  => $taxId,
+               "privateKey" =>$privateKey,
+               "idCreditDueDate" => $id_comprobante+0 ];
+
+      $rta = self::CallAPI( $id_empresa , "POST", "PrintCredit" , $data,true);
+
+      if($rta["httpCode"]===200){
+        $datos=$rta["response"];  
+      }else{
+        $datos =null;
+      }
+
+      return $datos; 
+
+    }
+
 
     public function alta_debito_automatico($parametros)
         { return array("resultado"=>'NO_IMPLEMENTADO');}
