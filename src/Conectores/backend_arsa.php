@@ -683,7 +683,7 @@ pkg_convenios.datos_cuota(
                 $comprobantes[]=["id_comprobante"=> $id_empresa."-".$id_sucursal."-".$cupon."-".$tipo_iva,
                                 "total"=>$cupones["IMPORTE"],
                                 "fecha_vto"=>$cupones["FECHA_1VTO"],
-                                "descripcion"=>"Factura Cupon".$id_empresa."-".$tipo_iva."-".$cupones["NRO_FACTURA"]
+                                "descripcion"=>"Cupon Factura ".$id_empresa."-".$tipo_iva."-".$cupones["NRO_FACTURA"]
                             ];
                 $total = $total+$cupones["IMPORTE"];                     
             }elseif( $accion==='DEVC2'){
@@ -714,7 +714,7 @@ pkg_convenios.datos_cuota(
                 $comprobantes[]=["id_comprobante"=> $id_empresa."-".$id_sucursal."-".$cupon."-".$tipo_iva,
                                 "total"=>$cupones["IMPORTE"],
                                 "fecha_vto"=>$cupones["FECHA_1VTO"],
-                                "descripcion"=>"Factura Cupon".$id_empresa."-".$tipo_iva."-".$cupones["NRO_FACTURA"]
+                                "descripcion"=>"Cupon Factura ".$id_empresa."-".$tipo_iva."-".$cupones["NRO_FACTURA"]
                             ];
                 $total = $total+$cupones["IMPORTE"];                     
             }
