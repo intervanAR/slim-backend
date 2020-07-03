@@ -81,7 +81,7 @@ class backend_clubonline implements backend_servicio
         }
     }else{
         $response = curl_exec($curl);
-        $res_data = json_decode(utf8_to_array(str_replace("\": null" , "\": \"\"",$response)),true);
+        $res_data = array_a_utf8(json_decode(str_replace("\": null" , "\": \"\"",$response),true));
     }
     /* Check for 404 (file not found). */
     $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
