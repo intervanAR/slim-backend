@@ -970,6 +970,7 @@ pkg_convenios.datos_cuota(
                          and a.id_sucursal=c.id_sucursal
                          and a.cod_iva=c.cod_iva
                          and a.nro_factura=c.nro_factura
+                         and a.anulada='N'
                          AND pkg_facturacion.factura_original (a.id_empresa,
                                                                a.id_sucursal,
                                                                a.cod_iva,
