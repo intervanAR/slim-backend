@@ -67,7 +67,13 @@ interface backend_servicio
     public function get_reporte_factura($parametros);
 
     public function get_consulta_dinamica($reporte,$parametros);
-    
+  
+    public function datos_socio($filtro);    
+
+    public function obtener_parametros($parametro);    
+
+    public function establecer_parametro($parametro);    
+  
 }
 
 ?>

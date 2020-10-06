@@ -1769,3 +1769,50 @@ $app->Post('/backend/importar', function (Request $request, Response $response, 
 });
 
 
+$app->Get('/servicios/datos_socio', function (Request $request, Response $response, array $args) {
+
+	$this->logger->debug('/servicios/parametros:'.json_encode($request->getQueryParams()));
+
+	$params = $request->getQueryParams();
+
+   	$datos = $this->sistema->datos_socio($params);
+	
+	$cantidad = count($datos);
+
+	$myresponse = $response->withAddedHeader('Content-Type', 'application/json')->
+							withAddedHeader('Cantidad-Registros', "$cantidad");			
+
+	$myresponse->write(json_encode($datos));
+    return $myresponse;
+});
+
+
+$app->Get('/servicios/parametros', function (Request $request, Response $response, array $args) {
+
+	$this->logger->debug('/servicios/parametros:'.json_encode($request->getQueryParams()));
+
+	$params = $request->getQueryParams();
+
+   	$datos = $this->sistema->obtener_parametros($params);
+	
+	$cantidad = count($datos);
+
+	$myresponse = $response->withAddedHeader('Content-Type', 'application/json')->
+							withAddedHeader('Cantidad-Registros', "$cantidad");			
+
+	$myresponse->write(json_encode($datos));
+    return $myresponse;
+});
+
+$app->Post('/servicios/parametro', function (Request $request, Response $response, array $args) {
+
+	$this->logger->debug('/servicios/parametros:'.$request->getBody()->getContents());
+	$parametro = $request->getParsedBody();
+
+   	$rta = $this->sistema->establecer_parametro($parametro);
+
+	$myresponse = $response->withAddedHeader('Content-Type', 'application/json');			
+
+	$myresponse->write(json_encode($rta));
+    return $myresponse;
+});

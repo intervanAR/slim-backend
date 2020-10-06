@@ -356,5 +356,13 @@ class backend_erp implements backend_servicio
 
     public function proveedores_facturas($parametros)
         { return array("resultado"=>'NO_IMPLEMENTADO');}
-}
+
+
+    public function datos_socio($filtro){
+      return [];
+    }    
+
+    public function obtener_parametros($parametro){;}
+
+    public function establecer_parametro($parametro){;}
 ?>

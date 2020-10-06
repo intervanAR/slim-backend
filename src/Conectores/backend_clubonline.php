@@ -608,5 +608,55 @@ class backend_clubonline implements backend_servicio
 
     public function proveedores_facturas($parametros)
         { return array("resultado"=>'NO_IMPLEMENTADO');}
+
+    public function datos_socio($parametros){
+      $logger = \Backend\SlimBackend::Backend()->logger;
+
+      $id_empresa = \Backend\SlimBackend::Backend()->settings['id_empresa'];
+
+      $taxId = \Backend\SlimBackend::getParametros($id_empresa,"taxId",0,100,false)[0]["valor"];
+      $privateKey = \Backend\SlimBackend::getParametros($id_empresa,"privateKey",0,100,false)[0]["valor"];
+
+      if (isset($parametros["nro_documento"]))
+          $nro_documento= $parametros["nro_documento"];
+      else
+          $nro_documento= -1;     
+
+      $data = ["taxId"  => $taxId,
+               "privateKey" =>$privateKey,
+               "personalId" => $nro_documento+0 ];
+
+      $rta = self::CallAPI( $id_empresa , "POST", "ClubMember" , $data);
+
+      $datos = [];
+      if($rta["httpCode"]===200){
+        $datos = $rta["response"];  
+      }
+      return $datos;
+    }    
+
+
+    public function obtener_parametros($parametro){
+        $logger = \Backend\SlimBackend::Backend()->logger;
+
+        $id_empresa = \Backend\SlimBackend::Backend()->settings['id_empresa'];
+
+        $datos = \Backend\SlimBackend::getParametros($id_empresa,$parametro["parametro"],0,100,false);
+
+        return $datos;
+    }    
+
+
+
+    public function establecer_parametro($parametro){
+        
+        $logger = \Backend\SlimBackend::Backend()->logger;
+
+        $id_empresa = \Backend\SlimBackend::Backend()->settings['id_empresa'];
+
+        $rta = \Backend\SlimBackend::setParametro($id_empresa,$parametro["parametro"]);
+
+        return $rta;
+    }
 }
 ?>

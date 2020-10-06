@@ -9,6 +9,7 @@ use Backend\Modelos\Agua\CuotasConvenio;
 use Backend\Modelos\Agua\DeudaTmp;
 use Backend\Modelos\Agua\FacturaTmp;
 use Backend\Modelos\Agua\Factura;
+use Backend\Modelos\Agua\ConfiguracionSistema2;
 use Backend\Modelos\ReportePDF;
 
 class backend_aguas implements backend_servicio
@@ -1576,5 +1577,78 @@ pkg_convenios.datos_cuota(
 
         return $file_name;
     }
+
+    public function datos_socio($filtro){
+      return [];
+    }    
+
+
+    public function obtener_parametros($parametro){
+
+        $consulta = new ConfiguracionSistema2(SlimBackend::Backend());
+        $database = $logger = $consulta->db;
+        $logger = $consulta->logger; 
+
+        $logger->debug( "obtener_parametros".json_encode($parametro));
+
+        $condicion["ID_EMPRESA"] = 1;
+        $condicion["ID_SUCURSAL"] = 0;
+        $condicion["CAMPO"] = ["RECAUDADOR_WEB","WEB_URL_DESCARGA_FACTURA"];
+
+        if (strpos($parametro["parametro"],"%")!==false) { 
+            $condicion["CAMPO[~]"] = $parametro["parametro"];
+        }else{
+            $condicion["CAMPO"] = $parametro["parametro"];
+        }
+
+        $campos=["ID_EMPRESA(id_empresa)","CAMPO(codigo)","VALOR(valor)"];
+
+        $param_array =  $consulta->select($campos,$condicion);
+
+        if( $consulta->error() ){
+            $logger->debug('getParametro:'.print_r($consulta->getDB()->log(),true));
+            $logger->debug('getParametro:'.print_r($consulta->getDB()->error(),true));    
+            return []; 
+        }      
+
+        $datos = array_map(function($row) { return array_merge($row, array("observaciones"=>null));}, $param_array);
+
+        return $datos;
+    }    
+
+
+
+    public function establecer_parametro($param){
+        
+        $consulta = new ConfiguracionSistema2(SlimBackend::Backend());
+        $logger = $consulta->logger;
+
+        $logger->debug( "establecer_parametro".json_encode($param));
+
+       
+        $condicion["ID_EMPRESA"]=1;
+        $condicion["ID_SUCURSAL"]=0;
+        $parametro=$param["parametro"]["codigo"];
+
+        if(isset($param["parametro"]["codigo"])) {
+            $condicion["CAMPO"]=$parametro;
+        }
+
+        $campos = array();
+        if( isset($param["parametro"]["valor"])) {
+            $campos["VALOR"]=$param["parametro"]["valor"];
+        }
+        
+        $datos = $consulta->update($campos,$condicion);
+
+        if( $consulta->error() ){
+            $logger->debug('setParametro:'.print_r($consulta->getDB()->log(),true));
+            $logger->debug('setParametro:'.print_r($consulta->getDB()->error(),true));    
+            return ["result"=>"setParametro:".$consulta->getDB()->error()[2]]; 
+        }      
+        return ["result"=>"OK"];
+    }
+
+
 }
 ?>

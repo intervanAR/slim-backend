@@ -63,5 +63,35 @@ class SlimBackend
         return $datos;
     }
 
+    public static function setParametro( $id_empresa, $param){
+        
+        $consulta = new Modelos\Clubonline\Parametros( self::$App->getcontainer() );
+        $logger = $consulta->logger;
+       
+        $condicion["ID_EMPRESA"]=$id_empresa;
+        $parametro=$param["codigo"];
+
+        if(isset($param["codigo"])) {
+            $condicion["CODIGO"]=$parametro;
+        }
+
+        $campos = array();
+        if( isset($param["valor"])) {
+            $campos["VALOR"]=$param["valor"];
+        }
+        if( isset($param["observaciones"])) {
+            $campos["OBSERVACIONES"]=$param["observaciones"];
+        }
+        
+        $datos = $consulta->update($campos,$condicion);
+
+        if( $consulta->error() ){
+            $logger->debug('setParametro:'.print_r($consulta->getDB()->log(),true));
+            $logger->debug('setParametro:'.print_r($consulta->getDB()->error(),true));    
+            return ["result"=>"setParametro:".$consulta->getDB()->error()[2]]; 
+        }      
+        return ["result"=>"OK"];
+    }
+
 }
 ?>
