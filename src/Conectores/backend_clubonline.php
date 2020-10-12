@@ -622,6 +622,7 @@ class backend_clubonline implements backend_servicio
       else
           $nro_documento= -1;     
 
+
       $data = ["taxId"  => $taxId,
                "privateKey" =>$privateKey,
                "personalId" => $nro_documento+0 ];
@@ -630,7 +631,18 @@ class backend_clubonline implements backend_servicio
 
       $datos = [];
       if($rta["httpCode"]===200){
-        $datos = $rta["response"];  
+        $datos["nroSocio"]=$rta["response"]["number"];
+        $datos["dni"]=$rta["response"]["personalId"];
+        $datos["nombre"]=$rta["response"]["firstName"]." ".$rta["response"]["lastName"];
+        $datos["categoria"]=$rta["response"]["condition"];
+        $datos["fnacimiento"]="";
+        $datos["fingreso"]="";
+        if( $rta["response"]["doorAccess"])
+            $datos["estado"]="Activo";
+        else
+            $datos["estado"]="Baja";
+        $datos["mesesImpagos"]="-1";
+        $datos["fotoUrl"] = $rta["response"]["photoUrl"];  
       }
       return $datos;
     }    
