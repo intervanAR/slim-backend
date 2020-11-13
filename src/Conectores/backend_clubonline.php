@@ -635,8 +635,8 @@ class backend_clubonline implements backend_servicio
         $datos["dni"]=$rta["response"]["personalId"];
         $datos["nombre"]=$rta["response"]["firstName"]." ".$rta["response"]["lastName"];
         $datos["categoria"]=$rta["response"]["condition"];
-        $datos["fnacimiento"]="";
-        $datos["fingreso"]="";
+        $datos["fnacimiento"]=isset($rta["response"]["birthDate"])? $rta["response"]["birthDate"] :"";
+        $datos["fingreso"]=isset($rta["response"]["addDate"])? $rta["response"]["addDate"] :"";
         if( $rta["response"]["doorAccess"])
             $datos["estado"]="Activo";
         else
