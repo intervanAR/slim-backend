@@ -30,6 +30,9 @@ class ConsultasDinamicas extends \Backend\Modelos\ModeloBase
 		$stmt = $pdo->prepare($query, array(\PDO::ATTR_CURSOR => \PDO::CURSOR_SCROLL));
 		$stmt->execute();
 		while ($row = $stmt->fetch(\PDO::FETCH_ASSOC, \PDO::FETCH_ORI_NEXT)) {
+			// Para que no aborte el procesamiento
+            set_time_limit(30); 
+
 		  // Si es la 1er fila => creo el grupo
 			foreach ($row as $key => $value) {
 					if( isset($row[$key]) && is_resource($row[$key])) {

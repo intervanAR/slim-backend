@@ -189,7 +189,10 @@ class backend_arsa extends backend_aguas
                                and b.id_empresa=cup2.id_empresa(+)
                                and b.ID_SUCURSAL=cup2.id_sucursal(+)
                                and b.NRO_FACT_CUPON2=cup2.NRO_FACTURA(+)
-                               and b.cod_iva=cup2.cod_iva(+)";   
+                               and b.cod_iva=cup2.cod_iva(+)
+                               and b.anulada='N'
+                               and 'N'=cup1.anulada(+)
+                               and 'N'=cup2.anulada(+)";   
 
                         $sth = $database->pdo->prepare($sql);
 
