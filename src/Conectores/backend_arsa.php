@@ -447,10 +447,11 @@ class backend_arsa extends backend_aguas
               "CUOTAS_CONVENIO.FECHA_VTO(deu_vto)",
               "CONVENIOS.COD_IVA"
                ];
-            $condicion["CUOTAS_CONVENIO.PAGADA"]="N";            
-            $condicion["CUOTAS_CONVENIO.ID_EMPRESA"]=$cta_datos["ID_EMPRESA"]; 
-            $condicion["CUOTAS_CONVENIO.ID_SUCURSAL"]=$cta_datos["ID_SUCURSAL"]; 
-            $condicion["CUOTAS_CONVENIO.CUENTA"]=$cta_datos["CUENTA"]; 
+            $condicion["CONVENIOS.ESTADO"]="ACT";
+            $condicion["CUOTAS_CONVENIO.PAGADA"]="N";
+            $condicion["CUOTAS_CONVENIO.ID_EMPRESA"]=$cta_datos["ID_EMPRESA"];
+            $condicion["CUOTAS_CONVENIO.ID_SUCURSAL"]=$cta_datos["ID_SUCURSAL"];
+            $condicion["CUOTAS_CONVENIO.CUENTA"]=$cta_datos["CUENTA"];
 
            	if( $tipoDeuda==='deuda'){
            		$condicion["CUOTAS_CONVENIO.FECHA_VTO[<]"]= \Medoo\Medoo::raw('TRUNC(SYSDATE)+1');
