@@ -4,6 +4,7 @@ use \Backend\SlimBackend;
 
 
 use Backend\Modelos\Agua\Cuentas;
+use Backend\Modelos\Agua\CuentasMails;
 use Backend\Modelos\Agua\Deudas;
 use Backend\Modelos\Agua\CuotasConvenio;
 use Backend\Modelos\Agua\DeudaTmp;
@@ -18,28 +19,18 @@ class backend_aguas implements backend_servicio
 
 
         $consulta = new Cuentas(SlimBackend::Backend());
+        $ctaMail = new CuentasMails(SlimBackend::Backend());
 
         $condicion = [];
-
-     /*   if ( isset($filtro) &&
-             isset($filtro["tipo_documento"]) ) {
-            $condicion["PERSONAS.TIPO_DOC"] = $filtro["tipo_documento"];
-        }*/
 
         if(isset($filtro["nro"])){
         	$condicion["CUENTAS.CUENTA"] = $filtro["nro"];
         }elseif ( isset($filtro) &&
-             isset($filtro["nro_documento"]) ) {
+             isset($filtro["nro_documento"]) && strlen($filtro["nro_documento"])>5) {
             $condicion["OR"] = [ "PERSONAS.NRO_DOC" => $filtro["nro_documento"],
                                    "PERSONAS.CUIT" => $filtro["nro_documento"]  ] ;
         }
 
-/*
-        if ( isset($filtro) &&
-             isset($filtro["mail"]) ) {
-            $condicion["CLIENTES.EMAIL"]=$filtro["mail"];
-        }
-*/
         if(sizeof($condicion)<1) return array();
 
 
@@ -54,7 +45,19 @@ class backend_aguas implements backend_servicio
                 function($row) { return array("tipo_cuenta"=>"SERV","nro"=>$row['CUENTA'],
             								   "tipo_objeto"=>"SERV","id_objeto"=>$row['CUENTA'])  ; },
                 $datos);
-        
+
+        //
+        // busca cuentas y asocia cuentas al mail en tabla cuentas_mail
+        //
+        if( isset($filtro["mail"] )) {
+            foreach ($cuentas as $key => $cuenta) {
+                $existe = $ctaMail->select( ["CUENTA"], ["CUENTA"=>$cuenta["nro"],"MAIL"=>$filtro["mail"]]);
+
+                if( !isset($existe) || sizeof($cuentas<1 ))
+                    # code...
+                    $ctaMail->insert(["CUENTA"=>$cuenta["nro"],"MAIL"=>$filtro["mail"]]);
+            }
+        }
         return $cuentas;
     }
 
