@@ -2,7 +2,6 @@
 namespace Backend\Conectores;
 use \Backend\SlimBackend;
 
-
 use Backend\Modelos\Agua\Cuentas;
 use Backend\Modelos\Agua\CuentasMails;
 use Backend\Modelos\Agua\Deudas;
