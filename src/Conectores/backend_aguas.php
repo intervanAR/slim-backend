@@ -39,8 +39,6 @@ class backend_aguas implements backend_servicio
  
         $datos =  $consulta->selectj($join,$campos,$condicion);
 
-        $consulta->logger->debug('backend_aguas:get_cuentas:'.print_r($consulta->db->log(),true));
-
         $cuentas = array_map(
                 function($row) { return array("tipo_cuenta"=>"SERV","nro"=>$row['CUENTA'],
             								   "tipo_objeto"=>"SERV","id_objeto"=>$row['CUENTA'])  ; },
@@ -53,7 +51,7 @@ class backend_aguas implements backend_servicio
             foreach ($cuentas as $key => $cuenta) {
                 $existe = $ctaMail->select( ["CUENTA"], ["CUENTA"=>$cuenta["nro"],"MAIL"=>$filtro["mail"]]);
 
-                if( !isset($existe) || sizeof($cuentas<1 ))
+                if( !isset($existe) || sizeof($existe)<1 )
                     # code...
                     $ctaMail->insert(["CUENTA"=>$cuenta["nro"],"MAIL"=>$filtro["mail"]]);
             }
