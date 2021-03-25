@@ -905,7 +905,26 @@ pkg_convenios.datos_cuota(
                   ,Pkg_Recaudadores.cod_externo(fac.id_empresa
                                                         ,Pkg_Varios.ID_REC_RED_LINK(fac.id_empresa))
                               || LPAD(fac.clave_link,13,'0') clave_link
-                  ,fac.clave_banelco
+                  ,fac.clave_banelco,
+  (select max(activo)
+    from usuarios_recaudadores ur
+    ,recaudadores rec,
+    detalles_facturas det 
+    where det.id_empresa=fac.id_Empresa
+    and det.id_sucursal=fac.id_sucursal
+    and det.cuenta=fac.cuenta
+    and det.nro_factura=fac.nro_factura
+    and det.cod_iva=fac.cod_iva
+    and  ur.id_empresa         = det.id_empresa
+    and   ur.id_sucursal        = det.id_sucursal
+    and   ur.cuenta             = det.cuenta
+    and   ur.activo             = 'S'
+    AND   ((ur.que_paga in ('BIM','BYC') and origen='DEU') or 
+           (ur.que_paga in ('CON','BYC') and origen='CON')
+          ) 
+    and   ur.fecha_inicio       <= fac.fecha_1vto
+    and   rec.id_empresa = ur.id_empresa
+    and   rec.id_recaudador = ur.id_recaudador) debito_automatico
 				from facturas fac
 				  ,cuentas cue
 				  ,calles cal_inm
@@ -1298,8 +1317,8 @@ pkg_convenios.datos_cuota(
                     ["font-family"=>"times" , "font-size"=>11 ],
                     ["text-x"=>$x+41 , "text-y"=>$y+29,"text"=>$row["FECHA_1VTO_TXT"]],
                     ["text-x"=>$x+83 , "text-y"=>$y+29,"text"=>$row["TOTAL_1VTO"]],
-                    ["bc1d-x"=>$x , "bc1d-y"=>$y+35,"bc1d-text"=>$row["COD_BARRA1_NRO"],
-                      "bc1d-w"=>105 , "bc1d-h"=>20,"bc1d-r"=>0.4 ,"bc1d"=>"I25","bc1d-s"=>$style]
+
+                    ( $row["DEBITO_AUTOMATICO"]==="S" && $original==="S" ? ["text-x"=>$x+20 , "text-y"=>$y+45,"text"=>"Factura adherida a débito automático"] :  ["bc1d-x"=>$x , "bc1d-y"=>$y+35,"bc1d-text"=>$row["COD_BARRA1_NRO"], "bc1d-w"=>105 , "bc1d-h"=>20,"bc1d-r"=>0.4 ,"bc1d"=>"I25","bc1d-s"=>$style])                
                   ]);
 
             $x=102;
@@ -1314,8 +1333,7 @@ pkg_convenios.datos_cuota(
                     ["font-family"=>"times" , "font-size"=>11 ],
                     ["text-x"=>$x+41 , "text-y"=>$y+29,"text"=>$row["FECHA_2VTO_TXT"]],
                     ["text-x"=>$x+83 , "text-y"=>$y+29,"text"=>$row["TOTAL_2VTO"]],
-                    ["bc1d-x"=>$x , "bc1d-y"=>$y+35,"bc1d-text"=>$row["COD_BARRA2_NRO"],
-                      "bc1d-w"=>105 , "bc1d-h"=>20,"bc1d-r"=>0.4 ,"bc1d"=>"I25","bc1d-s"=>$style]
+                    ( $row["DEBITO_AUTOMATICO"]==="S" && $original==="S" ? ["text-x"=>$x+20 , "text-y"=>$y+45,"text"=>"Factura adherida a débito automático"] :  ["bc1d-x"=>$x , "bc1d-y"=>$y+35,"bc1d-text"=>$row["COD_BARRA2_NRO"], "bc1d-w"=>105 , "bc1d-h"=>20,"bc1d-r"=>0.4 ,"bc1d"=>"I25","bc1d-s"=>$style])                                        
                   ]);
         $iva =0;
 
