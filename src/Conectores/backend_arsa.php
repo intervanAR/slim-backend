@@ -23,7 +23,7 @@ class backend_arsa extends backend_aguas
         $logger = $consulta->logger;
         $database = $consulta->db;
 
-        $coef_ley25413 = 1.012;
+        $coef_ley25413 = 1.0122;
        	// Fecha actual para comparar si es deuda o prox vto.
         $hoy = date("Y-m-d")." 24:59:59";
         $hoy_00 = date("Y-m-d")." 00:00:00";
