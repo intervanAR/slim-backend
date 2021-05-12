@@ -939,7 +939,8 @@ pkg_convenios.datos_cuota(
 				where  fac.id_empresa=emp.id_empresa
                 and    fac.id_empresa   = :id_empresa
 				and    fac.id_sucursal  = :id_sucursal
-                and    fac.nro_factura=:nro_factura
+                and    (fac.nro_factura=:nro_factura or fac.nro_fact_cupon1=:nro_factura or fac.nro_fact_cupon2=:nro_factura )
+                and    fac.tipo_comprobante<>'CUP'
                 and    fac.cod_iva = :cod_iva
 				and    cue.cuenta       = fac.cuenta
 				and    cue.id_empresa   = fac.id_empresa
@@ -966,6 +967,8 @@ pkg_convenios.datos_cuota(
 
 			list( $id_empresa,$id_sucursal,$nro_factura,$cod_iva) =
 					preg_split("/-/",$factura);
+
+
 			$logger->debug(" reporteFactura $id_empresa , $id_sucursal , $nro_factura , $cod_iva "); 
 			$sth->bindParam(':id_empresa', $id_empresa, \PDO::PARAM_INT);
 			$sth->bindParam(':id_sucursal', $id_sucursal, \PDO::PARAM_INT);
@@ -980,6 +983,8 @@ pkg_convenios.datos_cuota(
 
             $row = $sth->fetchAll()[0];
 
+            // Cambio el nro_Factura por lo que trajo el query por si entré con cupon
+            $nro_factura=$row["nro_factura"];
             //
             // Verificar la factura Original
             //
