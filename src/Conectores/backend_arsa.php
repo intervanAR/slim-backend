@@ -1189,6 +1189,8 @@ pkg_convenios.datos_cuota(
 
             $database->pdo->rollback();
  
+            $pdf->setImg('images/frente_arsa.jpg' );
+
             // add a page
             $pdf->AddPage();
 
@@ -1440,9 +1442,11 @@ pkg_convenios.datos_cuota(
 
         $pdf->print($data);
 
-        $pdf->setImg('images/dorso_arsa.jpg' );
         // add a page
+        $pdf->setImg('images/dorso_arsa.jpg' );
+
         $pdf->AddPage();
+
 
 	}
 
