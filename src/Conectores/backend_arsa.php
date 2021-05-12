@@ -939,8 +939,7 @@ pkg_convenios.datos_cuota(
 				where  fac.id_empresa=emp.id_empresa
                 and    fac.id_empresa   = :id_empresa
 				and    fac.id_sucursal  = :id_sucursal
-                and    (fac.nro_factura=:nro_factura or fac.nro_fact_cupon1=:nro_factura or fac.nro_fact_cupon2=:nro_factura )
-                and    fac.tipo_comprobante<>'CUP'
+                and    fac.nro_factura=:nro_factura
                 and    fac.cod_iva = :cod_iva
 				and    cue.cuenta       = fac.cuenta
 				and    cue.id_empresa   = fac.id_empresa
@@ -969,6 +968,37 @@ pkg_convenios.datos_cuota(
 					preg_split("/-/",$factura);
 
 
+            $sqltcomp = "SELECT TIPO_COMPROBANTE
+                      FROM facturas
+                     WHERE id_empresa = $id_empresa
+                       AND id_sucursal = $id_sucursal
+                       AND cod_iva = '$cod_iva'
+                       AND nro_factura = $nro_factura";
+
+            $sth_aux = $database->pdo->prepare($sqltcomp);
+            if( !$sth_aux->execute()  ){
+                $logger->debug( "backend_arsa:buscando tipo de cmprobante error:".$sql." ".print_r($sth_aux->errorInfo(),true));
+                return;
+            }
+            $tipoComp = $sth_aux->fetchAll()[0];
+            if(isset($tipoComp) && $tipoComp["TIPO_COMPROBANTE"]==="CUP"){
+                $sqlnrofac = "SELECT NRO_FACTURA
+                          FROM facturas
+                         WHERE id_empresa = $id_empresa
+                           AND id_sucursal = $id_sucursal
+                           AND cod_iva = '$cod_iva'
+                           AND (nro_fact_CUPON1 = $nro_factura OR nro_fact_CUPON2 = $nro_factura)";
+
+                $sth_aux = $database->pdo->prepare($sqlnrofac);
+                if( !$sth_aux->execute()  ){
+                    $logger->debug( "backend_arsa:buscando factura_original error:".$sql." ".print_r($sth_aux->errorInfo(),true));
+                }
+                $factorig = $sth_aux->fetchAll()[0];
+                if(isset($factorig) && isset($factorig["NRO_FACTURA"])){
+                    $nro_factura = $factorig["NRO_FACTURA"];
+                }
+            }
+
 			$logger->debug(" reporteFactura $id_empresa , $id_sucursal , $nro_factura , $cod_iva "); 
 			$sth->bindParam(':id_empresa', $id_empresa, \PDO::PARAM_INT);
 			$sth->bindParam(':id_sucursal', $id_sucursal, \PDO::PARAM_INT);
@@ -983,8 +1013,7 @@ pkg_convenios.datos_cuota(
 
             $row = $sth->fetchAll()[0];
 
-            // Cambio el nro_Factura por lo que trajo el query por si entré con cupon
-            $nro_factura=$row["nro_factura"];
+            $logger->debug(" reporteFactura datos:".json_encode($row)); 
             //
             // Verificar la factura Original
             //
