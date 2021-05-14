@@ -702,12 +702,12 @@ pkg_convenios.datos_cuota(
         $logger = $consulta->logger; 
         $database->pdo->beginTransaction();
         $transaccion=true;
-
+        $fecha_pago=substr($parametros["fecha_pago"],0,10);
 
         $sth = $database->pdo->prepare("begin :rta := pkg_backend.buscar_liquidacion (
                     :id_empresa,
                     :id_sucursal,
-                    TRUNC(sysdate),
+                    '$fecha_pago',
                     :id_recaudador,
                     :nro_liquidacion);
                     end;");
@@ -717,7 +717,6 @@ pkg_convenios.datos_cuota(
         $rta = "";
         $id_empresa_liq=1;
         $id_sucursal_liq=0;
-        $fecha=$now->format('Y-m-d')." 00:00:00";
         $id_recaudador=0;
         $nro_liquidacion=0;
 
@@ -757,7 +756,7 @@ pkg_convenios.datos_cuota(
                             :id_sucursal,
                             :cod_iva,
                             :nro_factura,
-                            trunc(sysdate),
+                            '$fecha_pago',
                             :importe,
                             :id_cobro_factura 
                             );
@@ -793,7 +792,7 @@ pkg_convenios.datos_cuota(
                 $database->pdo->rollback();
                 return array("rta" => "crear_operacion_pago agregar_pago error".$rta, 'id_operacion_pago' => '');
             }
-            $id_operaciones[] = $id_empresa."-".$id_cobro_factura;
+            $id_operaciones[] = array("resultado"=>"ok","nro_cobro"=>$id_empresa."-".$id_cobro_factura, "cupon_pago"=>$factura["id_comprobante"] );
 
         }
         $database->pdo->commit();
@@ -824,7 +823,7 @@ pkg_convenios.datos_cuota(
 
         foreach ($id_operacion as $key => $operacion) {
             # code...
-            list($id_empresa,$id_cobro_factura)= preg_split("/-/",$operacion);
+            list($id_empresa,$id_cobro_factura)= preg_split("/-/",$operacion["nro_cobro"]);
 
             $sth = $database->pdo->prepare("begin :rta := pkg_backend.confirmar_cobro (:id_empresa,
                 :id_cobro_factura);
