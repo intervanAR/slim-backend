@@ -224,6 +224,25 @@ $app->get('/servicios/buscar_cuenta', function (Request $request, Response $resp
 			}
 	);
 
+   $app->post('/servicios/desasociar_cuenta', function (Request $request, Response $response, array $args) {
+
+			$this->logger->debug('/servicios/desasociar_cuenta:'.$request->getBody()->getContents());
+			
+			$parametros =  $request->getParsedBody(); 
+
+			$datos = $this->sistema->desasociar_cuenta($parametros);
+
+			$cantidad = count($datos);
+
+			$myresponse = $response->withAddedHeader('Content-Type', 'application/json')->
+									withAddedHeader('Cantidad-Registros', "$cantidad");			
+
+			$myresponse->write(json_encode(array_a_utf8($datos)));
+		    return $myresponse;
+			}
+	);
+
+
 /**
     @OA\Get(
        	path="/backend/servicios/cuentas_x_usuario",

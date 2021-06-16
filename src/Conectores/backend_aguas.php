@@ -4,6 +4,7 @@ use \Backend\SlimBackend;
 
 use Backend\Modelos\Agua\Cuentas;
 use Backend\Modelos\Agua\CuentasMails;
+use Backend\Modelos\Agua\DireccionesMails;
 use Backend\Modelos\Agua\Deudas;
 use Backend\Modelos\Agua\CuotasConvenio;
 use Backend\Modelos\Agua\DeudaTmp;
@@ -15,19 +16,19 @@ use Backend\Modelos\ReportePDF;
 class backend_aguas implements backend_servicio
 {
     public function get_cuentas($filtro){ 
-
-
         $consulta = new Cuentas(SlimBackend::Backend());
         $ctaMail = new CuentasMails(SlimBackend::Backend());
+        $dirMail = new DireccionesMails(SlimBackend::Backend());
 
         $condicion = [];
 
         if(isset($filtro["nro"])){
         	$condicion["CUENTAS.CUENTA"] = $filtro["nro"];
-        }elseif ( isset($filtro) &&
-             isset($filtro["nro_documento"]) && strlen($filtro["nro_documento"])>5) {
+        }elseif ( isset($filtro) && isset($filtro["nro_documento"]) && strlen($filtro["nro_documento"])>5) {
             $condicion["OR"] = [ "PERSONAS.NRO_DOC" => $filtro["nro_documento"],
                                    "PERSONAS.CUIT" => $filtro["nro_documento"]  ] ;
+        }elseif ( isset($filtro) && isset($filtro["mail"]) ){
+            $condicion["CUENTAS.CUENTA"] = $ctaMail->select("CUENTA",["MAIL"=>$filtro["mail"]]);
         }
 
         if(sizeof($condicion)<1) return array();
@@ -52,6 +53,8 @@ class backend_aguas implements backend_servicio
 
                 if( !isset($existe) || sizeof($existe)<1 )
                     # code...
+                    $dirMail->insert(["MAIL"=>$filtro["mail"],"NOMBRE_MAIL"=>$filtro["mail"], "ACTIVA"=>"S"]);
+
                     $ctaMail->insert(["CUENTA"=>$cuenta["nro"],"MAIL"=>$filtro["mail"]]);
             }
         }
@@ -688,6 +691,25 @@ pkg_convenios.datos_cuota(
 
     public function buscar_cuenta($filtro){
         return array("resultado"=>'NO_IMPLEMENTADO'); 
+    }
+
+    public function desasociar_cuenta($filtro){ 
+        $ctaMail = new CuentasMails(SlimBackend::Backend());
+
+        $condicion = [];
+
+        if(isset($filtro["nro"])){
+            $condicion["CUENTA"] = $filtro["nro"];
+        }
+        if ( isset($filtro) && isset($filtro["mail"]) ){
+            $condicion["MAIL"] = $filtro["mail"];
+        }
+
+        if(sizeof($condicion)<2) return array();
+
+        $ctaMail->delete($condicion);
+
+        return 1;
     }
 
 

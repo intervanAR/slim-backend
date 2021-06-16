@@ -430,7 +430,9 @@ class backend_clubonline implements backend_servicio
         return array("resultado"=>'NO_IMPLEMENTADO'); 
     }
 
-
+    public function desasociar_cuenta($filtro){
+        return array("resultado"=>'NO_IMPLEMENTADO'); 
+    }
 
     public function get_facturas($filtro){
 

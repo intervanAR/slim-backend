@@ -41,6 +41,8 @@ interface backend_servicio
 
     public function buscar_cuenta($filtro);
 
+    public function desasociar_cuenta($filtro);
+
     public function get_cuentas($filtro);
 
     public function resumen_pago($id_comprobantes, $fecha_actualizacion);

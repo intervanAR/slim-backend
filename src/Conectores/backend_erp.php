@@ -322,6 +322,9 @@ class backend_erp implements backend_servicio
         return array("resultado"=>'NO_IMPLEMENTADO'); 
     }
 
+    public function desasociar_cuenta($filtro){
+        return array("resultado"=>'NO_IMPLEMENTADO'); 
+    }
 
     public function crear_operacion_pago($comprobantes){
         return array("resultado"=>'NO_IMPLEMENTADO');
