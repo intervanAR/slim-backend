@@ -35,13 +35,15 @@ class backend_aguas implements backend_servicio
 
 
         $join = ["[><]PERSONAS"=>["ID_PERSONA"=>"ID_PERSONA" ]];
-        $campos = ["CUENTAS.CUENTA"];
+        $campos = ["CUENTAS.CUENTA","CUENTAS.ID_EMPRESA","CUENTAS.ID_SUCURSAL"];
  
         $datos =  $consulta->selectj($join,$campos,$condicion);
 
         $cuentas = array_map(
                 function($row) { return array("tipo_cuenta"=>"SERV","nro"=>$row['CUENTA'],
-            								   "tipo_objeto"=>"SERV","id_objeto"=>$row['CUENTA'])  ; },
+            								   "tipo_objeto"=>"SERV","id_objeto"=>$row['CUENTA'],
+                                               "id_empresa"=>$row['ID_EMPRESA'],
+                                                "id_sucursal"=>$row['ID_SUCURSAL'])  ; },
                 $datos);
 
         //
@@ -53,9 +55,9 @@ class backend_aguas implements backend_servicio
 
                 if( !isset($existe) || sizeof($existe)<1 )
                     # code...
-                    $dirMail->insert(["MAIL"=>$filtro["mail"],"NOMBRE_MAIL"=>$filtro["mail"], "ACTIVA"=>"S"]);
+                    $dirMail->insert(["MAIL"=>$filtro["mail"],"NOMBRE_DESTINATARIO"=>$filtro["mail"], "ACTIVA"=>"S"]);
 
-                    $ctaMail->insert(["CUENTA"=>$cuenta["nro"],"MAIL"=>$filtro["mail"]]);
+                    $ctaMail->insert(["CUENTA"=>$cuenta["nro"],"MAIL"=>$filtro["mail"],"ID_EMPRESA"=>$cuenta["id_empresa"],"ID_SUCURSAL"=>$cuenta["id_sucursal"]]);
             }
         }
         return $cuentas;
