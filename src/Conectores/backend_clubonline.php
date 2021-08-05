@@ -100,12 +100,70 @@ class backend_clubonline implements backend_servicio
     return array("httpCode"=>$httpCode , "response"=>$res_data);
   }
 
-    public function get_cuentas($filtro){ 
-        return [];
+    public function get_cuentas($parametros){ 
+      $logger = \Backend\SlimBackend::Backend()->logger;
+
+      $id_empresa = \Backend\SlimBackend::Backend()->settings['id_empresa'];
+
+      $taxId = \Backend\SlimBackend::getParametros($id_empresa,"taxId",0,100,false)[0]["valor"];
+      $privateKey = \Backend\SlimBackend::getParametros($id_empresa,"privateKey",0,100,false)[0]["valor"];
+
+      if (isset($parametros["nro"]))
+          $nro_documento= $parametros["nro"];
+      elseif (isset($parametros["nro_documento"]))
+          $nro_documento= $parametros["nro_documento"];
+      else
+          $nro_documento= -1;     
+
+
+      $data = ["taxId"  => $taxId,
+               "privateKey" =>$privateKey,
+               "personalId" => $nro_documento+0 ];
+
+      $rta = self::CallAPI( $id_empresa , "POST", "ClubMember" , $data);
+
+ /*
+ {[{"tipo_cuenta":"SERV","nro":"1300700400000","tipo_objeto":"SERV","id_objeto":"1300700400000","id_empresa":"1","id_sucursal":"13"}]}
+ */
+      $datos = [];
+      if($rta["httpCode"]===200){
+        $datos[] = array( "tipo_cuenta"=> "SOC" , "nro"=>$rta["response"]["personalId"],"tipo_objeto"=>"SOC","id_objeto"=>$rta["response"]["personalId"] ); 
+      }
+      return $datos;
     }
 
     public function get_cuentas_x_objetos($objetos){
-        return [];
+      $logger = \Backend\SlimBackend::Backend()->logger;
+
+      $id_empresa = \Backend\SlimBackend::Backend()->settings['id_empresa'];
+
+      $taxId = \Backend\SlimBackend::getParametros($id_empresa,"taxId",0,100,false)[0]["valor"];
+      $privateKey = \Backend\SlimBackend::getParametros($id_empresa,"privateKey",0,100,false)[0]["valor"];
+
+      $cuentas=[];
+      foreach ($objetos as $key => $value) {
+        $data = ["taxId"  => $taxId,
+                 "privateKey" =>$privateKey,
+                 "personalId" => $value["id_objeto"]+0 ];
+
+        $rta = self::CallAPI( $id_empresa , "POST", "ClubMember" , $data);
+
+        if($rta["httpCode"]===200){
+          $cuentas[$key]["alias_cuenta"]=$objetos[$key]["alias_cuenta"] ?? null;
+          $cuentas[$key]["id_cuenta"]=$rta["response"]["idClubMember"];
+          $cuentas[$key]["tipo_cuenta"]=$objetos[$key]["tipo_objeto"];
+          $cuentas[$key]["nro_cuenta"]=$rta["response"]["personalId"];
+          $cuentas[$key]["desc_tipo_cuenta"]="Socio";
+          $cuentas[$key]["descripcion"]=$rta["response"]["firstName"]." ".$rta["response"]["lastName"];
+          $cuentas[$key]["responsable_pago"]=$rta["response"]["firstName"]." ".$rta["response"]["lastName"];
+          $cuentas[$key]["id_persona"]=$rta["response"]["personalId"];
+          $cuentas[$key]["enviar_mail"]="N";
+          $cuentas[$key]["pa_activo"]="N";
+          $cuentas[$key]["pa_fecha_desde"]=null;
+          $cuentas[$key]["pa_fecha_hasta"]=null;          
+        }
+      }
+      return $cuentas;
     }
 
     public function consulta_deuda($parametros){
@@ -123,101 +181,69 @@ class backend_clubonline implements backend_servicio
       else
           $tipoDeuda='tod';
 
-      if (isset($parametros["nro_documento"]))
-          $nro_documento= $parametros["nro_documento"];
-      else
-          $nro_documento= -1;     
 
+      $deudas=[];
+      foreach ($parametros["cuentas"] as $key => $cuenta) {
+              # code...
+        $data = ["taxId"  => $taxId,
+                 "privateKey" =>$privateKey,
+                 "personalId" => $cuenta["nro_cuenta"]+0 ];
 
-      $data = ["taxId"  => $taxId,
-               "privateKey" =>$privateKey,
-               "personalId" => $nro_documento+0 ];
+        $filas=[];
 
-      $rta = self::CallAPI( $id_empresa , "POST", "BalanceComposition" , $data);
+        $rta = self::CallAPI( $id_empresa , "POST", "BalanceComposition" , $data);
 
-      if($rta["httpCode"]===200){
-        $filas=$rta["response"];  
-      }else{
-        $filas =[];
+        if($rta["httpCode"]===200){
+          $filas=$rta["response"];  
+
+          $nro_cuenta= $cuenta["nro_cuenta"]+0;
+          $deuda = array_map(
+                  function($row) use($nro_cuenta) 
+                  { 
+                    $vto = substr($row["dueDate"],6,4)."-".
+                                      substr($row["dueDate"],3,2)."-".
+                                      substr($row["dueDate"],0,2);
+                    $cod_concepto=1;
+                    $desc_concepto="Cuota Social";
+                    $comp_data = array( "id"=>$row["idCreditDueDate"],
+                                        "monto"=>$row['balance'],
+                                        "cod_concepto"=>$cod_concepto,
+                                        "desc_concepto"=>$desc_concepto,
+                                        "descripcion"=>$row["description"]);
+                    return                 
+                          ["cont_id"=>$row["clubMember"] ,
+                           "cont_desc1"=>$row["clubMember"],
+                           "cont_desc2"=>"",
+                           "cue_id"=> $nro_cuenta,
+                           "cue_desc1"=>$row["clubMember"],
+                           "cue_desc2"=>"",
+                           "imp_id"=>$cod_concepto,
+                           "imp_desc1"=>$desc_concepto,
+                           "per_id"=> 1,
+                           "deu_id"=>$comp_data,
+                           "deu_desc1"=> $row["description"],
+                           "deu_vto"=>$vto,
+                           "deu_capital"=> $row['balance'],
+                           "deu_recargo"=>0
+                          ]; 
+                  },
+                  $filas);
+
+        }
+        $deudas = array_merge($deudas , $deuda);
       }
 
-      $deuda = array_map(
-              function($row) use($nro_documento) 
-              { 
-                $vto = substr($row["dueDate"],6,4)."-".
-                                  substr($row["dueDate"],3,2)."-".
-                                  substr($row["dueDate"],0,2);
-                $cod_concepto=1;
-                $desc_concepto="Cuota Social";
-                $comp_data = array( "id"=>$row["idCreditDueDate"],
-                                    "monto"=>$row['balance'],
-                                    "cod_concepto"=>$cod_concepto,
-                                    "desc_concepto"=>$desc_concepto,
-                                    "descripcion"=>$row["description"]);
-                return                 
-                      ["cont_id"=>$row["clubMember"] ,
-                       "cont_desc1"=>$row["clubMember"],
-                       "cont_desc2"=>"",
-                       "cue_id"=> $nro_documento,
-                       "cue_desc1"=>$row["clubMember"],
-                       "cue_desc2"=>"",
-                       "imp_id"=>$cod_concepto,
-                       "imp_desc1"=>$desc_concepto,
-                       "per_id"=> 1,
-                       "deu_id"=>$comp_data,
-                       "deu_desc1"=> $row["description"],
-                       "deu_vto"=>$vto,
-                       "deu_capital"=> $row['balance'],
-                       "deu_recargo"=>0
-                      ]; 
-              },
-              $filas);
+      $mensaje_error = "";
+      $prox = null; 
 
-
-        $mensaje_error = "";
-        $prox = null; 
-
-
-            /*
-
-                {"CONT_ID":"30672920554",
-                  "ID_EMPRESA":"1","NRO_SUCURSAL":"0","ID_FACTURA":"41",
-                  "DEU_CAPITAL":"107.69",
-                  "CONT_DESC1":"ACCEDER S.R.L",
-                  "DEU_VTO":"29-SEP-04",
-                  "TIPO_FACTURA":"A",
-                  "NRO_FACTURA":"17"
-                }
-
-
-        select cuit as CONT_ID,* 
-                    RAZON_SOCIAL AS CONT_desc1,* 
-                   'Cuit '|| TO_CHAR(CUIT) AS CONT_DESC2,
-                   id_cuenta as cue_id,
-                   Fondo ||' '|| id_cuenta as cue_desc1,
-                   '' as cue_desc2,
-                   '1' as imp_id,
-                   tipo_credito as imp_desc1,
-                   nro_cuota as PER_ID ,
-                   'Cta:'||nro_cuota as PER_DESC1,
-                   id_deuda as DEU_ID ,
-                   'Cta:'||nro_cuota ||' Vto:'||TO_CHAR(vencimiento,'dd/mm/yy') deu_desc1,
-                   vencimiento as DEU_VTO,
-                   nvl(capital,0) as deu_capital,
-                   nvl(intereses,0)+nvl(gastos,0)+nvl(intereres_act,0) deu_recargo
-                   from backend_det_deuda   
-                  where id_session = '$nro_cuit'
-                  and tipo_deuda='A VENCER'
-                  order by CONT_DESC1,CUE_DESC1,IMP_DESC1,DEU_VTO DESC        
-        */
-        $array_rta=array();
+      $array_rta=array();
         
-        if(isset($deuda))
-            $array_rta["deuda"]=$deuda;
-        if(isset($prox))
-            $array_rta["prox"]=$prox;
+      if(isset($deuda))
+          $array_rta["deuda"]=$deudas;
+      if(isset($prox))
+          $array_rta["prox"]=$prox;
 
-        return $array_rta;
+      return $array_rta;
     }    
 
     public function resumen_pago($id_comprobantes, $fecha_actualizacion){
