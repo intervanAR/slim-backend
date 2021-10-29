@@ -782,7 +782,8 @@ pkg_convenios.datos_cuota(
                             :nro_factura,
                             '$fecha_pago',
                             :importe,
-                            :id_cobro_factura 
+                            :id_cobro_factura,
+                            :id_operacion_ov
                             );
                         end;");
 
@@ -800,6 +801,7 @@ pkg_convenios.datos_cuota(
             $sth->bindParam(':nro_factura', $nro_factura, \PDO::PARAM_INT);
             $sth->bindParam(':importe', $imp_fac , \PDO::PARAM_STR);
             $sth->bindParam(':id_cobro_factura', $id_cobro_factura, \PDO::PARAM_INT || \PDO::PARAM_INPUT_OUTPUT ,1000 );
+            $sth->bindParam(':id_operacion_ov', $factura["id_operacion"] , \PDO::PARAM_STR);
 
             $sth->bindParam(':rta', $rta, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,1000 );
 

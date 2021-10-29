@@ -105,7 +105,6 @@ class backend_arsa extends backend_aguas
            		$condicion["DEUDAS.FECHA_VTO[>]"]= \Medoo\Medoo::raw('TRUNC(SYSDATE)-60');
            	}
             $datos =  $consulta->select($campos,$condicion);
-            $logger->debug('backend_aguas:consulta_deuda 2 '.print_r($cta_consulta->db->log(),true));
             if( $consulta->error() ){
 
               $logger->debug('backend_aguas:consulta_deuda 2 '.print_r($cta_consulta->db->log(),true));
