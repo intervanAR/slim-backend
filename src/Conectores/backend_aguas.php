@@ -812,7 +812,7 @@ pkg_convenios.datos_cuota(
                 return array("rta" => "crear_operacion_pago agregar_pago error SQL", 'id_operacion_pago' => '');
             }
 
-            if( "OK" !==$rta ){
+            if( "OK" !== $rta && "COBRO YA APLICADO" !== $rta ){
                 $logger->debug( "crear_operacion_pago agregar_pago error ".$rta);
                 $transaccion=false;
                 $database->pdo->rollback();
@@ -867,7 +867,7 @@ pkg_convenios.datos_cuota(
                 return "confirmar_operacion_pago".print_r($sth->errorInfo(),true);
             }
 
-            if( "OK" !==$rta ){
+            if( "OK" !==$rta && "COBRO YA ASENTADO" !==$rta ){
                 $logger->debug( "confirmar_operacion_pago ".$rta);
                 $transaccion=false;
                 $database->pdo->rollback();
