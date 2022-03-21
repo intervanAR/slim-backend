@@ -683,6 +683,13 @@ pkg_convenios.datos_cuota(
 
                 $cupones = $sth->fetchAll()[0];
 
+
+                if( !isset($cupones["IMPORTE"]) || !$cupones["IMPORTE"] ) {
+                    $logger->debug( "backend_aguas:resumen_pago 1.5.5 error no existe importe de cupon : ".$value["id"]) ;
+                    return array("rta" => "Error", 
+              "error" => "backend_aguas:resumen_pago 1.5.5 error no existe importe de cupon:".$value["id"] );
+                }
+
                 $comprobantes[]=["id_comprobante"=> $id_empresa."-".$id_sucursal."-".$cupon."-".$tipo_iva,
                                 "total"=>$cupones["IMPORTE"],
                                 "fecha_vto"=>$cupones["FECHA_1VTO"],
@@ -707,8 +714,15 @@ pkg_convenios.datos_cuota(
 
                 $sth = $database->pdo->prepare($sql);
 
+                if( !isset($cupones["IMPORTE"]) || !$cupones["IMPORTE"] ){
+                    $logger->debug( "backend_aguas:resumen_pago 1.5.6 error no existe importe de cupon : ".$value["id"] );
+                    return array("rta" => "Error", 
+              "error" => "backend_aguas:resumen_pago 1.5.6 error no existe importe de cupon:".$value["id"] );
+                }
+
                 if( !$sth->execute()  ){
                     $logger->debug( "backend_aguas:resumen_pago 1.6 error:".$sql." ".print_r($sth->errorInfo(),true));
+
                     return "backend_aguas:resumen_pago 1.6 error".print_r($sth->errorInfo(),true);
                 }
 
@@ -1160,12 +1174,8 @@ pkg_convenios.datos_cuota(
                         ,total_2_vto total_2_vto
                         from tmp_deuda2
                         where USUARIO =USERENV('sessionid')
-                        AND  pkg_facturacion.zona_factura2(id_empresa,
-                                                                                  id_sucursal,
-                                                                                  cod_iva,
-                                                                                  nro_factura,
-                                                                                  orden,
-                                                                                  USUARIO) = 'IZQ'
+                        AND  pkg_facturacion.zona_factura2(id_empresa, id_sucursal, cod_iva, nro_factura, orden,
+                                                                                  USUARIO ) = 'IZQ'
                         and de_donde ='FAC'
                         and id_empresa=:id_empresa
                         and id_sucursal=:id_sucursal

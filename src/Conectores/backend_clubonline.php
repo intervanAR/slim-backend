@@ -238,7 +238,7 @@ class backend_clubonline implements backend_servicio
 
       $array_rta=array();
         
-      if(isset($deuda))
+      if(isset($deudas))
           $array_rta["deuda"]=$deudas;
       if(isset($prox))
           $array_rta["prox"]=$prox;
