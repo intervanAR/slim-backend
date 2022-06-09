@@ -716,13 +716,6 @@ pkg_convenios.datos_cuota(
 
                 $sth = $database->pdo->prepare($sql);
 
-                $cupones = $sth->fetchAll()[0];
-
-                if( !isset($cupones["IMPORTE"]) || !$cupones["IMPORTE"] ){
-                    $logger->debug( "backend_aguas:resumen_pago 1.5.6 error no existe importe de cupon : ".$value["id"] );
-                    return array("rta" => "Error", 
-              "error" => "backend_aguas:resumen_pago 1.5.6 error no existe importe de cupon:".$value["id"] );
-                }
 
                 if( !$sth->execute()  ){
                     $logger->debug( "backend_aguas:resumen_pago 1.6 error:".$sql." ".print_r($sth->errorInfo(),true));
@@ -731,6 +724,13 @@ pkg_convenios.datos_cuota(
                 }
 
                 $cupones = $sth->fetchAll()[0];
+
+
+                if( !isset($cupones["IMPORTE"]) || !$cupones["IMPORTE"] ){
+                    $logger->debug( "backend_aguas:resumen_pago 1.5.6 error no existe importe de cupon : ".$value["id"] );
+                    return array("rta" => "Error", 
+              "error" => "backend_aguas:resumen_pago 1.5.6 error no existe importe de cupon:".$value["id"] );
+                }
 
                 $comprobantes[]=["id_comprobante"=> $id_empresa."-".$id_sucursal."-".$cupon."-".$tipo_iva,
                                 "total"=>$cupones["IMPORTE"],
