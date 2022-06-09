@@ -712,7 +712,11 @@ pkg_convenios.datos_cuota(
                            AND CUPON.cod_iva = '".$tipo_iva."'
                            AND CUPON.nro_factura = ".$cupon;
 
+
+
                 $sth = $database->pdo->prepare($sql);
+
+                $cupones = $sth->fetchAll()[0];
 
                 if( !isset($cupones["IMPORTE"]) || !$cupones["IMPORTE"] ){
                     $logger->debug( "backend_aguas:resumen_pago 1.5.6 error no existe importe de cupon : ".$value["id"] );
