@@ -168,7 +168,8 @@ class backend_arsa extends backend_aguas
                             and cob.id_sucursal_factura=cup.id_sucursal
                             and cob.cod_iva=cup.cod_iva
                             and cob.nro_factura=cup.nro_factura)
-                            ) cupon_pago 
+                            ) cupon_pago,
+                            saldo_capital_id_deuda( a.id_empresa,a.id_sucursal,a.cuenta,a.id_origen,trunc(sysdate)) saldo_neto 
                               FROM detalles_facturas a, facturas b, facturas cup1, facturas cup2
                              WHERE a.id_empresa = ".$cta_datos["ID_EMPRESA"]."
                                AND a.id_sucursal = ".$cta_datos["ID_SUCURSAL"]."
@@ -207,7 +208,8 @@ class backend_arsa extends backend_aguas
                             $cupones["C1_PAGADA"]==="N" && 
                             $cupones["CUPON_PAGO"]==="N" &&
                             $cupones["C1_VENCIDA"]==="S" && 
-                            $cupones["C2_VENCIDA"]==="N" ){
+                            $cupones["C2_VENCIDA"]==="N" &&
+                            $cupones["SALDO_NETO"] >=($cupones["C1_NETO"] + $cupones["C1_IVA"])){
                             //
                             // Cupon1 vencido, CUpon2 sin vencer => Refacturar CUPON1
                             //
@@ -223,7 +225,8 @@ class backend_arsa extends backend_aguas
                             $cupones["C1"]!== null && 
                             $cupones["C1_PAGADA"]==="N" && 
                             $cupones["CUPON_PAGO"]==="N" &&
-                            $cupones["C1_VENCIDA"]==="N" ){
+                            $cupones["C1_VENCIDA"]==="N" &&
+                            $cupones["SALDO_NETO"] >=($cupones["C2_NETO"] + $cupones["C2_IVA"] )){
                             //
                             // Cupon1 vencido, CUpon2 sin vencer => Refacturar CUPON1
                             //
@@ -239,7 +242,8 @@ class backend_arsa extends backend_aguas
                         if( isset($cupones["C1"]) && 
                             $cupones["C1"]!== null && 
                             $cupones["C2_PAGADA"]==="N" && 
-                            $cupones["C2_VENCIDA"]==="N" ){
+                            $cupones["C2_VENCIDA"]==="N" &&
+                            $cupones["SALDO_NETO"] >=($cupones["C2_NETO"] + $cupones["C2_IVA"])){
                             //
                             // Cupon1 pagadao, CUpon2 sin vencer => Es solo CUPON2
                             //
