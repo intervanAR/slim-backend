@@ -1508,7 +1508,7 @@ pkg_convenios.datos_cuota(
                     ["text-x"=>$x+51 , "text-y"=>$y,"text"=>"Factura ".$id_empresa."-".$cod_iva."-".$nro_factura],
                     ["font-family"=>"times" , "font-size"=>12 ],
                     ["text-x"=>$x+57,"text-y"=>$y+5,"text"=>$row["CUENTA"]],
-                    ["text-x"=>$x+35,"text-y"=>$y+12,"text"=>$cp_periodo_facturacion],        
+                    ["text-x"=>$x+35,"text-y"=>$y+12,"text"=>utf8_encode($cp_periodo_facturacion)],        
             
                     ["font-family"=>"times" , "font-size"=>11 ],
                     ["text-x"=>$x+37 , "text-y"=>$y+24,"text"=>$row["FECHA_1VTO_TXT"]],
@@ -1526,7 +1526,7 @@ pkg_convenios.datos_cuota(
                     ["text-x"=>$x+51 , "text-y"=>$y,"text"=>"Factura ".$id_empresa."-".$cod_iva."-".$nro_factura],
                     ["font-family"=>"times" , "font-size"=>12 ],
                     ["text-x"=>$x+57,"text-y"=>$y+5,"text"=>$row["CUENTA"]],
-                    ["text-x"=>$x+35,"text-y"=>$y+12,"text"=>$cp_periodo_facturacion],        
+                    ["text-x"=>$x+35,"text-y"=>$y+12,"text"=>utf8_encode($cp_periodo_facturacion)],        
             
                     ["font-family"=>"times" , "font-size"=>11 ],
                     ["text-x"=>$x+37 , "text-y"=>$y+24,"text"=>$row["FECHA_1VTO_TXT"]],
