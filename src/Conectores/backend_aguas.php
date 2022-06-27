@@ -1402,7 +1402,7 @@ pkg_convenios.datos_cuota(
             }
             $data =[
                     ["font-family"=>"times" , "font-size"=>14 ],
-                    ["text-x"=>85 , "text-y"=>25,"text"=>utf8_encode($row["APELLIDO_NOMBRE"])],
+                    ["text-x"=>85 , "text-y"=>10,"text"=>utf8_encode($row["APELLIDO_NOMBRE"])],
                     
                     ($original==="N") ?
                       ["text-x"=>140 , "text-y"=>63,"text"=>"LIQUIDACION DE DEUDA"] :
@@ -1410,33 +1410,33 @@ pkg_convenios.datos_cuota(
                     ,
 
                     ["font-family"=>"times" , "font-size"=>11 ],
-                    ["text-x"=>85 , "text-y"=>30,"text"=>utf8_encode($row["POSTAL_CALLE"])],
-                    ["text-x"=>85 , "text-y"=>35,"text"=>utf8_encode($row["POSTAL_PISO"])],
-                    ["text-x"=>85 , "text-y"=>40,"text"=>utf8_encode($row["POSTAL_DTO"])],
-                    ["text-x"=>85 , "text-y"=>45,"text"=>utf8_encode($row["LOCALIDAD"])],
-                    ["text-x"=>85 , "text-y"=>50,"text"=>utf8_encode($row["PROVINCIA"])],
-                    ["text-x"=>85 , "text-y"=>55,"text"=>utf8_encode($row["CODIGO_POSTAL"])],
+                    ["text-x"=>85 , "text-y"=>18,"text"=>utf8_encode($row["POSTAL_CALLE"])],
+                    ["text-x"=>85 , "text-y"=>23,"text"=>utf8_encode($row["POSTAL_PISO"])],
+                    ["text-x"=>85 , "text-y"=>28,"text"=>utf8_encode($row["POSTAL_DTO"])],
+                    ["text-x"=>85 , "text-y"=>35,"text"=>utf8_encode($row["LOCALIDAD"])],
+                    ["text-x"=>85 , "text-y"=>40,"text"=>utf8_encode($row["PROVINCIA"])],
+                    ["text-x"=>85 , "text-y"=>45,"text"=>utf8_encode($row["CODIGO_POSTAL"])],
                     ["font-family"=>"times" , "font-size"=>10 ],
-                    ["multi-x"=>160 , "multi-y"=>25,"multi-text"=>utf8_encode($row["IVA"]),
+                    ["multi-x"=>160 , "multi-y"=>15,"multi-text"=>utf8_encode($row["IVA"]),
                     "multi-al"=>"C","muli-w"=>40,"multi-h"=>10],
-                    ["multi-x"=>160 , "multi-y"=>36,"multi-text"=>utf8_encode($row["CATEGORIA"]),
+                    ["multi-x"=>160 , "multi-y"=>25,"multi-text"=>utf8_encode($row["CATEGORIA"]),
                     "multi-al"=>"C","muli-w"=>40,"multi-h"=>15],
                     ($cod_iva==="MT"|| $cod_iva==="RI") ? 
-                    ["multi-x"=>160 , "multi-y"=>56,"multi-text"=>utf8_encode($row["CUIT"]),
+                    ["multi-x"=>160 , "multi-y"=>43,"multi-text"=>utf8_encode($row["CUIT"]),
                     "multi-al"=>"C","muli-w"=>40,"multi-h"=>15]
                     : [],
                     ["font-family"=>"courier" , "font-size"=>10 ],
-                    ["text-x"=>7 , "text-y"=>63,"text"=>"Factura ".$id_empresa."-".$cod_iva."-".$nro_factura],
+                    ["text-x"=>7 , "text-y"=>56,"text"=>"Factura ".$id_empresa."-".$cod_iva."-".$nro_factura],
                     ["font-family"=>"times" , "font-size"=>12 ],
-                    ["text-x"=>57 , "text-y"=>63,"text"=>$row["CUENTA"]],
+                    ["text-x"=>57 , "text-y"=>56,"text"=>$row["CUENTA"]],
                     ["font-family"=>"times" , "font-size"=>10 ],
                     ["text-x"=>107 , "text-y"=>68,"text"=>utf8_encode("(".$row["TIPO_SERVICIO"].")".$row["SERVICIO"])],
                     ["font-family"=>"times" , "font-size"=>11 ],
-                    ["text-x"=>22 , "text-y"=>74,"text"=>utf8_encode($row["INMUEBLE_CALLE"]." Nro:".$row["INMUEBLE_NRO"])],
-                    ["text-x"=>22 , "text-y"=>79,"text"=>utf8_encode($row["INMUEBLE_PISO"])],
-                    ["text-x"=>60 , "text-y"=>79,"text"=>utf8_encode("Sistema ".$row["TIPO_FACTURACION_DES"])],
-                    ["text-x"=>22 , "text-y"=>86,"text"=>utf8_encode($row["INMUEBLE_DTO"])],
-                    ["text-x"=>42 , "text-y"=>89,"text"=>utf8_encode($row["DATOS_CATASTRALES"])],
+                    ["text-x"=>22 , "text-y"=>68,"text"=>utf8_encode($row["INMUEBLE_CALLE"]." Nro:".$row["INMUEBLE_NRO"])],
+                    ["text-x"=>22 , "text-y"=>73,"text"=>utf8_encode($row["INMUEBLE_PISO"])],
+                    ["text-x"=>60 , "text-y"=>73,"text"=>utf8_encode("Sistema ".$row["TIPO_FACTURACION_DES"])],
+                    ["text-x"=>22 , "text-y"=>78,"text"=>utf8_encode($row["INMUEBLE_DTO"])],
+                    ["text-x"=>42 , "text-y"=>83,"text"=>utf8_encode($row["DATOS_CATASTRALES"])],
                     ["font-family"=>"times" , "font-size"=>10 ],                    
                     ["multi-x"=>3 , "multi-y"=>132,"multi-text"=>utf8_encode($row["TELEFONO"]),
                     "multi-al"=>"L","multi-w"=>80,"multi-h"=>10],
@@ -1469,17 +1469,23 @@ pkg_convenios.datos_cuota(
 
                 $data = array_merge($data,[                    
                     ["font-family"=>"times" , "font-size"=>10, "font-style"=>"" ],                    
-                    ["multi-x"=>5 , "multi-y"=>93,"multi-text"=>$estado_ant,
+                    ["multi-x"=>40 , "multi-y"=>95,"multi-text"=>$cp_fecha_lect_ant,
+                    "multi-al"=>"L","multi-w"=>100,"multi-h"=>9],
+                    ["multi-x"=>85 , "multi-y"=>95,"multi-text"=>$cp_estado_ant,
                     "multi-al"=>"L","multi-w"=>100,"multi-h"=>9],                
-                    ["multi-x"=>5 , "multi-y"=>98,"multi-text"=>$estado_act,
+                    ["multi-x"=>40 , "multi-y"=>100,"multi-text"=>$cp_fecha_lect_act,
+                    "multi-al"=>"L","multi-w"=>100,"multi-h"=>9],
+                    ["multi-x"=>85 , "multi-y"=>100,"multi-text"=>$cp_estado_act,
+                    "multi-al"=>"L","multi-w"=>100,"multi-h"=>9],                 
+                    ["multi-x"=>40 , "multi-y"=>105,"multi-text"=>$cp_prox_vto,
                     "multi-al"=>"L","multi-w"=>100,"multi-h"=>9],                
-                    ["multi-x"=>5 , "multi-y"=>103,"multi-text"=>$prox_vto,
+                    ["multi-x"=>85 , "multi-y"=>105,"multi-text"=>$cp_consumo,
                     "multi-al"=>"L","multi-w"=>100,"multi-h"=>9],                
-                    ["multi-x"=>5 , "multi-y"=>108,"multi-text"=>$promedio,
+                    ["multi-x"=>50 , "multi-y"=>113,"multi-text"=>$cp_promedio,
                     "multi-al"=>"L","multi-w"=>100,"multi-h"=>9],                
-                    ["multi-x"=>5 , "multi-y"=>113,"multi-text"=>$cons_ba,
+                    ["multi-x"=>50 , "multi-y"=>118,"multi-text"=>$cp_cons_per_ant,
                     "multi-al"=>"L","multi-w"=>100,"multi-h"=>9],                
-                    ["multi-x"=>5 , "multi-y"=>118,"multi-text"=>$cons_baa,
+                    ["multi-x"=>50 , "multi-y"=>123,"multi-text"=>$cp_cons_anio_ant,
                     "multi-al"=>"L","multi-w"=>100,"multi-h"=>9],                
                   ]);
             }
@@ -1487,45 +1493,45 @@ pkg_convenios.datos_cuota(
             $data = array_merge($data,[                    
                     ["font-family"=>"times" , "font-size"=>11 ],
                     ["text-x"=>132 , "text-y"=>145,"text"=>$row["FECHA_1VTO_TXT"]],
-                    ["text-x"=>180 , "text-y"=>145,"text"=>$row["TOTAL_1VTO_TXT"]],
-                    ["text-x"=>132 , "text-y"=>156,"text"=>$row["FECHA_2VTO_TXT"]],
-                    ["text-x"=>180 , "text-y"=>156,"text"=>$row["TOTAL_2VTO_TXT"]],
+                    ["text-x"=>132 , "text-y"=>153,"text"=>$row["TOTAL_1VTO_TXT"]],
+                    ["text-x"=>190 , "text-y"=>145,"text"=>$row["FECHA_2VTO_TXT"]],
+                    ["text-x"=>190 , "text-y"=>153,"text"=>$row["TOTAL_2VTO_TXT"]],
                     ["bc1d-x"=>105 , "bc1d-y"=>168,"bc1d-text"=>$row["COD_BARRA_NRO"],
                       "bc1d-w"=>105 , "bc1d-h"=>20,"bc1d-r"=>0.4 ,"bc1d"=>"I25","bc1d-s"=>$style]
                   ]);
 
 
             $x=0;
-            $y=197; 
+            $y=200; 
             $data = array_merge($data,[                    
                     ["font-family"=>"courier" , "font-size"=>10 ],
                     ["text-x"=>$x+51 , "text-y"=>$y,"text"=>"Factura ".$id_empresa."-".$cod_iva."-".$nro_factura],
                     ["font-family"=>"times" , "font-size"=>12 ],
-                    ["text-x"=>$x+57 , "text-y"=>$y+5,"text"=>$row["CUENTA"]],
-
-
+                    ["text-x"=>$x+57,"text-y"=>$y+5,"text"=>$row["CUENTA"]],
+                    ["text-x"=>$x+35,"text-y"=>$y+12,"text"=>$cp_periodo_facturacion],        
+            
                     ["font-family"=>"times" , "font-size"=>11 ],
                     ["text-x"=>$x+37 , "text-y"=>$y+24,"text"=>$row["FECHA_1VTO_TXT"]],
-                    ["text-x"=>$x+80 , "text-y"=>$y+24,"text"=>$row["TOTAL_1VTO_TXT"]],
-                    ["text-x"=>$x+37 , "text-y"=>$y+35,"text"=>$row["FECHA_2VTO_TXT"]],
+                    ["text-x"=>$x+80 , "text-y"=>$y+24,"text"=>$row["FECHA_2VTO_TXT"]],
+                    ["text-x"=>$x+37 , "text-y"=>$y+35,"text"=>$row["TOTAL_1VTO_TXT"]],
                     ["text-x"=>$x+80 , "text-y"=>$y+35,"text"=>$row["TOTAL_2VTO_TXT"]],
                     ["bc1d-x"=>$x , "bc1d-y"=>$y+51,"bc1d-text"=>$row["COD_BARRA_NRO"],
                       "bc1d-w"=>105 , "bc1d-h"=>20,"bc1d-r"=>0.4 ,"bc1d"=>"I25","bc1d-s"=>$style]
                   ]);
 
             $x=105;
-            $y=197; 
+            $y=200; 
             $data = array_merge($data,[                    
                     ["font-family"=>"courier" , "font-size"=>10 ],
                     ["text-x"=>$x+51 , "text-y"=>$y,"text"=>"Factura ".$id_empresa."-".$cod_iva."-".$nro_factura],
                     ["font-family"=>"times" , "font-size"=>12 ],
-                    ["text-x"=>$x+57 , "text-y"=>$y+5,"text"=>$row["CUENTA"]],
-
-
+                    ["text-x"=>$x+57,"text-y"=>$y+5,"text"=>$row["CUENTA"]],
+                    ["text-x"=>$x+35,"text-y"=>$y+12,"text"=>$cp_periodo_facturacion],        
+            
                     ["font-family"=>"times" , "font-size"=>11 ],
                     ["text-x"=>$x+37 , "text-y"=>$y+24,"text"=>$row["FECHA_1VTO_TXT"]],
-                    ["text-x"=>$x+80 , "text-y"=>$y+24,"text"=>$row["TOTAL_1VTO_TXT"]],
-                    ["text-x"=>$x+37 , "text-y"=>$y+35,"text"=>$row["FECHA_2VTO_TXT"]],
+                    ["text-x"=>$x+80 , "text-y"=>$y+24,"text"=>$row["FECHA_2VTO_TXT"]],
+                    ["text-x"=>$x+37 , "text-y"=>$y+35,"text"=>$row["TOTAL_1VTO_TXT"]],
                     ["text-x"=>$x+80 , "text-y"=>$y+35,"text"=>$row["TOTAL_2VTO_TXT"]],
                     ["bc1d-x"=>$x , "bc1d-y"=>$y+51,"bc1d-text"=>$row["COD_BARRA_NRO"],
                       "bc1d-w"=>105 , "bc1d-h"=>20,"bc1d-r"=>0.4 ,"bc1d"=>"I25","bc1d-s"=>$style]
