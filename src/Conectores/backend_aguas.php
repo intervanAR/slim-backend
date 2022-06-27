@@ -15,7 +15,8 @@ use Backend\Modelos\ReportePDF;
 
 class backend_aguas implements backend_servicio
 {
-    public function get_cuentas($filtro){ 
+    public function 
+    get_cuentas($filtro){ 
         $consulta = new Cuentas(SlimBackend::Backend());
         $ctaMail = new CuentasMails(SlimBackend::Backend());
         $dirMail = new DireccionesMails(SlimBackend::Backend());
@@ -1058,8 +1059,17 @@ pkg_convenios.datos_cuota(
     	$database = $consulta->db;
     	$logger = $consulta->logger;
 
+
+        $factura_frente='images/factura_frente.jpg';
+        
+        $param_data=self::obtener_parametros("FACTURA_FRENTE");
+        
+        if( isset($param_data) && isset($param_data[0]) && isset($param_data[0]["valor"])){
+            $factura_frente=$param_data[0]["valor"];
+        }
+
         // create new PDF document
-        $pdf = new ReportePDF('images/factura.jpg' , 210 , 297 , PDF_PAGE_ORIENTATION, "mm", array(0 => 210, 1 => 297 ) /* PDF_PAGE_FORMAT*/, true, 'UTF-8', false);
+        $pdf = new ReportePDF($factura_frente , 210 , 297 , PDF_PAGE_ORIENTATION, "mm", array(0 => 210, 1 => 297 ) /* PDF_PAGE_FORMAT*/, true, 'UTF-8', false);
 
         // set document information
         $pdf->SetTitle('Ticket');
@@ -1618,7 +1628,7 @@ pkg_convenios.datos_cuota(
 
         $condicion["ID_EMPRESA"] = 1;
         $condicion["ID_SUCURSAL"] = 0;
-        $condicion["CAMPO"] = ["RECAUDADOR_WEB","WEB_URL_DESCARGA_FACTURA"];
+        $condicion["CAMPO"] = ["RECAUDADOR_WEB","WEB_URL_DESCARGA_FACTURA","FACTURA_FRENTE","FACTURA_REVERSO"];
 
         if (strpos($parametro["parametro"],"%")!==false) { 
             $condicion["CAMPO[~]"] = $parametro["parametro"];
