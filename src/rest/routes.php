@@ -718,7 +718,7 @@ $app->Delete('/servicios/debitoAutomatico', function (Request $request, Response
    $app->Post('/servicios/facturaElectronica', function (Request $request, Response $response, array $args) {
 
 	$this->logger->debug('/servicios/facturaElectronica:'.$request->getBody()->getContents());
-	$parametros = json_decode($request->getBody()->getContents(),true);
+	$parametros = $request->getParsedBody(); 
 
 	$rta= $this->sistema->alta_factura_electronica($parametros);
 
@@ -772,7 +772,7 @@ $app->Delete('/servicios/debitoAutomatico', function (Request $request, Response
 $app->Delete('/servicios/facturaElectronica', function (Request $request, Response $response, array $args) {
 
 	$this->logger->debug('/servicios/facturaElectronica:'.$request->getBody()->getContents());
-	$parametros = json_decode($request->getBody()->getContents(),true);
+	$parametros = $request->getParsedBody(); 
 
 	$rta= $this->sistema->baja_factura_electronica($parametros);
 

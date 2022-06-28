@@ -15,8 +15,7 @@ use Backend\Modelos\ReportePDF;
 
 class backend_aguas implements backend_servicio
 {
-    public function 
-    get_cuentas($filtro){ 
+    public function get_cuentas($filtro){ 
         $consulta = new Cuentas(SlimBackend::Backend());
         $ctaMail = new CuentasMails(SlimBackend::Backend());
         $dirMail = new DireccionesMails(SlimBackend::Backend());
@@ -58,7 +57,7 @@ class backend_aguas implements backend_servicio
                     # code...
                     $dirMail->insert(["MAIL"=>$filtro["mail"],"NOMBRE_DESTINATARIO"=>$filtro["mail"], "ACTIVA"=>"S"]);
 
-                    $ctaMail->insert(["CUENTA"=>$cuenta["nro"],"MAIL"=>$filtro["mail"],"ID_EMPRESA"=>$cuenta["id_empresa"],"ID_SUCURSAL"=>$cuenta["id_sucursal"]]);
+                    $ctaMail->insert(["CUENTA"=>$cuenta["nro"],"MAIL"=>$filtro["mail"],"ID_EMPRESA"=>$cuenta["id_empresa"],"ID_SUCURSAL"=>$cuenta["id_sucursal"], "FECHA_DESDE"=>\Medoo\Medoo::raw('SYSDATE')]);
             }
         }
         return $cuentas;

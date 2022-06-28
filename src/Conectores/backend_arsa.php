@@ -15,7 +15,72 @@ class backend_arsa extends backend_aguas
 {
 
 
+    public function get_cuentas_x_objetos($objetos){
 
+        $consulta = new Cuentas(SlimBackend::Backend());
+        $database = $consulta->getDb();
+        $cuentas=[];
+
+        foreach ($objetos as $key => $value) {
+            $join = [   "[><]PERSONAS"=>["ID_PERSONA"=>"ID_PERSONA" ],
+                        "[><]CALLES"=>["INMUEBLE_COD_CALLE"=>"COD_CALLE" ],
+                        "[><]LOCALIDADES"=>["COD_LOCALIDAD"=>"COD_LOCALIDAD",
+                                            "COD_PROVINCIA"=>"COD_PROVINCIA" ],
+                        ];
+            $campos = ["CUENTAS.ID_EMPRESA",
+                        "CUENTAS.ID_SUCURSAL",
+                        "CUENTAS.CUENTA",
+                       "PERSONAS.APELLIDO_NOMBRE(RESPONSABLE)",
+                       "CALLES.DESCRIPCION(DESC_CALLE)",
+                       "INMUEBLE_NRO","INMUEBLE_PISO","INMUEBLE_DTO",
+                       "LOCALIDADES.DESCRIPCION(DESC_LOCALIDAD)",
+                       "LOCALIDADES.CODIGO_POSTAL",
+                        "CUENTAS.ID_PERSONA"];
+            $condicion["CUENTAS.CUENTA"]=$value["id_objeto"];
+
+            $datos =  $consulta->selectj($join,$campos,$condicion);
+
+            if( $consulta->error() ){
+                $consulta->logger->debug('backend_aguas:get_cuentas_x_objetos'.print_r($consulta->db->log(),true));
+                $consulta->logger->debug('backend_aguas:get_cuentas_x_objetos'.print_r($datos,true));
+                return [];           
+            }
+
+            if(isset($datos[0]) && isset($datos[0]['CUENTA'])  ){
+                $cuentas[$key]["alias_cuenta"]=$objetos[$key]["alias_cuenta"] ?? null;
+                $cuentas[$key]["id_cuenta"]=$datos[0]['ID_EMPRESA']."-".$datos[0]['ID_SUCURSAL']."-".$datos[0]['CUENTA'];
+                $cuentas[$key]["tipo_cuenta"]=$objetos[$key]["tipo_objeto"];
+                $cuentas[$key]["nro_cuenta"]=$datos[0]['CUENTA'];
+                $cuentas[$key]["desc_tipo_cuenta"]="Cuenta de Servicio";
+                $cuentas[$key]["descripcion"]= $datos[0]['CUENTA']." ".$datos[0]['DESC_CALLE']." ".$datos[0]['INMUEBLE_NRO'].
+                ( isset($datos[0]['INMUEBLE_PISO']) ? " ".$datos[0]['INMUEBLE_PISO'] : "" ) .
+                ( isset($datos[0]['INMUEBLE_DTO']) ? " ".$datos[0]['INMUEBLE_DTO'] : "" ) .
+                ( isset($datos[0]['DESC_LOCALIDAD']) ? " ".$datos[0]['DESC_LOCALIDAD'] : "" );
+
+                $cuentas[$key]["responsable_pago"]=$datos[0]["RESPONSABLE"];
+                $cuentas[$key]["id_persona"]=$datos[0]["ID_PERSONA"];
+
+                // Factura Elextronica ?
+                $cuentas[$key]["enviar_mail"]="N";
+                $sth = $database->pdo->prepare("begin :rta := pkg_backend.tiene_factura_electronica('".$datos[0]['CUENTA']."');end;");
+
+                $rta="";
+
+                $sth->bindParam(':rta', $rta, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+
+                if( $sth->execute()  ){
+                    $cuentas[$key]["enviar_mail"]=$rta;
+                }
+                //
+
+
+                $cuentas[$key]["pa_activo"]="N";
+                $cuentas[$key]["pa_fecha_desde"]=null;
+                $cuentas[$key]["pa_fecha_hasta"]=null;          
+            }
+        }
+        return $cuentas;
+    }
 
 	    public function consulta_deuda($parametros){
         $consulta = new Deudas(SlimBackend::Backend());
@@ -1475,6 +1540,58 @@ pkg_convenios.datos_cuota(
         //$lineas= base64_encode(file_get_contents($file_name));
 
         return $file_name;
+    }
+
+    public function alta_factura_electronica($parametros){ 
+        // TODO: parametrizar el tipo de adhesion a factura electronica
+
+        $consulta = new \Backend\Modelos\Agua\Cuentas(SlimBackend::Backend());
+        $database = $consulta->getDB();
+        $logger = $consulta->logger;
+
+        $datos = json_encode($parametros);
+
+        $cuenta = $parametros["nroCuenta"];
+        $mail = $parametros["mail"];
+
+        $sth = $database->pdo->prepare("begin :rta := pkg_backend.alta_factura_electronica('$cuenta','$mail',sysdate,0,'$datos');end;");
+
+        $rta="";
+
+        $sth->bindParam(':rta', $rta, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+
+        if( !$sth->execute()  ){
+            $logger->debug( "backend_arsa:alta factura electronica error".print_r($sth->errorInfo(),true));
+            return "ERROR.ADHESION";
+        }
+
+        return $rta;
+    }
+
+    public function baja_factura_electronica($parametros){ 
+        // TODO: parametrizar el tipo de adhesion a factura electronica
+
+        $consulta = new \Backend\Modelos\Agua\Cuentas(SlimBackend::Backend());
+        $database = $consulta->getDB();
+        $logger = $consulta->logger;
+
+        $datos = json_encode($parametros);
+
+        $cuenta = $parametros["nroCuenta"];
+        $mail = $parametros["mail"];
+
+        $sth = $database->pdo->prepare("begin :rta := pkg_backend.baja_factura_electronica('$cuenta','$mail',sysdate,0);end;");
+
+        $rta="";
+
+        $sth->bindParam(':rta', $rta, \PDO::PARAM_STR || \PDO::PARAM_INPUT_OUTPUT ,100 );
+
+        if( !$sth->execute()  ){
+            $logger->debug( "backend_arsa:alta factura electronica error".print_r($sth->errorInfo(),true));
+            return "ERROR.ADHESION";
+        }
+
+        return $rta;
     }
 }
 ?>
