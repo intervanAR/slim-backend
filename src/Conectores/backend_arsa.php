@@ -273,8 +273,8 @@ class backend_arsa extends backend_aguas
                             $cupones["C1_PAGADA"]==="N" && 
                             $cupones["CUPON_PAGO"]==="N" &&
                             $cupones["C1_VENCIDA"]==="S" && 
-                            $cupones["C2_VENCIDA"]==="N" &&
-                            $cupones["SALDO_NETO"] >=($cupones["C1_NETO"] + $cupones["C1_IVA"])){
+                            $cupones["C2_VENCIDA"]==="N" /*&&
+                            $cupones["SALDO_NETO"] >=($cupones["C1_NETO"] + $cupones["C1_IVA"])*/){
                             //
                             // Cupon1 vencido, CUpon2 sin vencer => Refacturar CUPON1
                             //
@@ -290,8 +290,8 @@ class backend_arsa extends backend_aguas
                             $cupones["C1"]!== null && 
                             $cupones["C1_PAGADA"]==="N" && 
                             $cupones["CUPON_PAGO"]==="N" &&
-                            $cupones["C1_VENCIDA"]==="N" &&
-                            $cupones["SALDO_NETO"] >=($cupones["C2_NETO"] + $cupones["C2_IVA"] )){
+                            $cupones["C1_VENCIDA"]==="N" /*&&
+                            $cupones["SALDO_NETO"] >=($cupones["C2_NETO"] + $cupones["C2_IVA"] )*/){
                             //
                             // Cupon1 vencido, CUpon2 sin vencer => Refacturar CUPON1
                             //
@@ -307,8 +307,8 @@ class backend_arsa extends backend_aguas
                         if( isset($cupones["C1"]) && 
                             $cupones["C1"]!== null && 
                             $cupones["C2_PAGADA"]==="N" && 
-                            $cupones["C2_VENCIDA"]==="N" &&
-                            $cupones["SALDO_NETO"] >=($cupones["C2_NETO"] + $cupones["C2_IVA"])){
+                            $cupones["C2_VENCIDA"]==="N"/* &&
+                            $cupones["SALDO_NETO"] >=($cupones["C2_NETO"] + $cupones["C2_IVA"])*/){
                             //
                             // Cupon1 pagadao, CUpon2 sin vencer => Es solo CUPON2
                             //
