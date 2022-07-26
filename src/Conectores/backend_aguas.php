@@ -1606,6 +1606,12 @@ pkg_convenios.datos_cuota(
 
         $pdf->print($data);
 
+       // add a page
+        $pdf->setImg('images/factura_dorso.jpeg' );
+
+        $pdf->AddPage();
+
+
 	}
 
         $file_name = tempnam(sys_get_temp_dir(), "download_file");
