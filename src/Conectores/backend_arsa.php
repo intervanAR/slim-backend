@@ -686,6 +686,9 @@ pkg_convenios.datos_cuota(
 
     public function resumen_pago($id_comprobantes, $fecha_actualizacion){
       try{
+
+        $hoy = date("Y-m-d");
+
         $transaccion=false;
         // Recorrer facturas y sumarlas
         // [{"id":"1-0-41"},{"id":"1-0-54"},{"id":"1-0-42"
@@ -705,33 +708,17 @@ pkg_convenios.datos_cuota(
             $cuenta=$id[2];
             $tipo_iva=$id[3];
             $id_deu_conv=$id[4];
-            $nro_cuota = isset($id[5]) ? $id[5] : null;
+            $nro_cuota = (isset($id[5])&& $id[5]!=="") ? $id[5] : null;
             $accion = isset($id[6]) ? $id[6] : null;
             $cupon = isset($id[7]) ? $id[7] : null;
 
-            if( !isset($accion) ){
-                $insert = $database->insert("TMP_BACKEND_DEUDAS",
-                    ["ID_EMPRESA"=>$id_empresa,
-                     "ID_SUCURSAL"=>$id_sucursal,
-                     "CUENTA"=>$cuenta,
-                     "TIPO_IVA"=>$tipo_iva,
-                     "ID_DEUDA"=>( !isset($nro_cuota) ? $id_deu_conv : NULL),
-                     "NRO_CONVENIO"=>( isset($nro_cuota) ? $id_deu_conv : NULL),
-                     "NRO_CUOTA"=>$nro_cuota,
-                    ]);
+            $actualizarCupon=false;
 
-                if ( $insert->rowCount() <1){
-                    $logger->debug('backend_aguas:resumen_pago 1 '.print_r($database->log(),true));
-                    $logger->error( 'backend_aguas:resumen_pago 1 '.print_r($database->error(),true));
-                    $database->pdo->rollback();
-                    $transaccion=false;
-                    return "backend_aguas:resumen_pago 1 ".print_r($database->error()[1],true);
-                }
-            }elseif( $accion==='DEVC1'){
+            if( $accion==='DEVC1'){
 
                 $sql = "SELECT TRUNC (CUPON.fecha_1vto) fecha_1vto,
                             CUPON.importe_1vto + CUPON.iva_1vto + CUPON.ley25413 importe,
-                            FAC.NRO_FACTURA
+                            FAC.NRO_FACTURA,CUPON.pagada
                           FROM facturas CUPON, FACTURAS FAC
                          WHERE CUPON.ID_EMPRESA=FAC.ID_EMPRESA
                            AND CUPON.ID_SUCURSAL=FAC.ID_SUCURSAL
@@ -750,7 +737,8 @@ pkg_convenios.datos_cuota(
                     return "backend_aguas:resumen_pago 1.5 error".print_r($sth->errorInfo(),true);
                 }
 
-                $cupones = $sth->fetchAll()[0];
+                $dts = $sth->fetchAll();
+                $cupones = isset($dts[0]) ? $dts[0] : null;
 
 
                 if( !isset($cupones["IMPORTE"]) || !$cupones["IMPORTE"] ) {
@@ -759,17 +747,28 @@ pkg_convenios.datos_cuota(
               "error" => "backend_aguas:resumen_pago 1.5.5 error no existe importe de cupon:".$value["id"] );
                 }
 
-                $comprobantes[]=["id_comprobante"=> $id_empresa."-".$id_sucursal."-".$cupon."-".$tipo_iva,
-                                "total"=>$cupones["IMPORTE"],
-                                "fecha_vto"=>$cupones["FECHA_1VTO"],
-                                "descripcion"=>"Cupon 1 Factura ".$id_empresa."-".$tipo_iva."-".$cupones["NRO_FACTURA"]
-                            ];
-                $total = $total+$cupones["IMPORTE"];                     
-            }elseif( $accion==='DEVC2'){
+                if( isset($cupones) && isset($cupones["PAGADA"])  &&  $cupones["PAGADA"]==="S") {
+                    $logger->debug( "backend_aguas:resumen_pago el cupón ya está pago : ".$value["id"]) ;
+                    return array("rta" => "YAPAGADO", "error" => "El cupón o la deuda ya está pago" );
+                }
+
+                if( $hoy>$cupones["FECHA_1VTO"] ){
+                    $actualizarCupon=true;
+                }else{
+                    $comprobantes[]=["id_comprobante"=> $id_empresa."-".$id_sucursal."-".$cupon."-".$tipo_iva,
+                                    "total"=>$cupones["IMPORTE"],
+                                    "fecha_vto"=>$cupones["FECHA_1VTO"],
+                                    "descripcion"=>"Cupon 1 Factura ".$id_empresa."-".$tipo_iva."-".$cupones["NRO_FACTURA"]
+                                ];
+                    $total = $total+$cupones["IMPORTE"];                     
+                }
+            }                
+
+            if( $accion==='DEVC2'){
 
                 $sql = "SELECT TRUNC (CUPON.fecha_1vto) fecha_1vto,
                             CUPON.importe_1vto + CUPON.iva_1vto + CUPON.ley25413 importe,
-                            FAC.NRO_FACTURA
+                            FAC.NRO_FACTURA,cupon.pagada
                           FROM facturas CUPON, FACTURAS FAC
                          WHERE CUPON.ID_EMPRESA=FAC.ID_EMPRESA
                            AND CUPON.ID_SUCURSAL=FAC.ID_SUCURSAL
@@ -792,7 +791,9 @@ pkg_convenios.datos_cuota(
                     return "backend_aguas:resumen_pago 1.6 error".print_r($sth->errorInfo(),true);
                 }
 
-                $cupones = $sth->fetchAll()[0];
+
+                $dts = $sth->fetchAll();
+                $cupones = isset($dts[0]) ? $dts[0] : null;
 
 
                 if( !isset($cupones["IMPORTE"]) || !$cupones["IMPORTE"] ){
@@ -801,12 +802,42 @@ pkg_convenios.datos_cuota(
               "error" => "backend_aguas:resumen_pago 1.5.6 error no existe importe de cupon:".$value["id"] );
                 }
 
-                $comprobantes[]=["id_comprobante"=> $id_empresa."-".$id_sucursal."-".$cupon."-".$tipo_iva,
-                                "total"=>$cupones["IMPORTE"],
-                                "fecha_vto"=>$cupones["FECHA_1VTO"],
-                                "descripcion"=>"Cupon 2 Factura ".$id_empresa."-".$tipo_iva."-".$cupones["NRO_FACTURA"]
-                            ];
-                $total = $total+$cupones["IMPORTE"];                     
+                if( isset($cupones) && isset($cupones["PAGADA"])  &&  $cupones["PAGADA"]==="S") {
+                    $logger->debug( "backend_aguas:resumen_pago el cupón ya está pago : ".$value["id"]) ;
+                    return array("rta" => "YAPAGADO", "error" => "El cupón o la deuda ya está pago" );
+                }
+
+                if( $hoy>$cupones["FECHA_1VTO"] ){
+                    $actualizarCupon=true;
+                }else{
+                    $comprobantes[]=["id_comprobante"=> $id_empresa."-".$id_sucursal."-".$cupon."-".$tipo_iva,
+                                    "total"=>$cupones["IMPORTE"],
+                                    "fecha_vto"=>$cupones["FECHA_1VTO"],
+                                    "descripcion"=>"Cupon 2 Factura ".$id_empresa."-".$tipo_iva."-".$cupones["NRO_FACTURA"]
+                                ];
+                    $total = $total+$cupones["IMPORTE"];                     
+                }
+            }
+
+            if( !isset($accion) || $actualizarCupon ){
+
+                $insert = $database->insert("TMP_BACKEND_DEUDAS",
+                    ["ID_EMPRESA"=>$id_empresa,
+                     "ID_SUCURSAL"=>$id_sucursal,
+                     "CUENTA"=>$cuenta,
+                     "TIPO_IVA"=>$tipo_iva,
+                     "ID_DEUDA"=>( !isset($nro_cuota) ? $id_deu_conv : NULL),
+                     "NRO_CONVENIO"=>( isset($nro_cuota) ? $id_deu_conv : NULL),
+                     "NRO_CUOTA"=>$nro_cuota,
+                    ]);
+
+                if ( $insert->rowCount() <1){
+                    $logger->debug('backend_aguas:resumen_pago 1 '.print_r($database->log(),true));
+                    $logger->error( 'backend_aguas:resumen_pago 1 '.print_r($database->error(),true));
+                    $database->pdo->rollback();
+                    $transaccion=false;
+                    return "backend_aguas:resumen_pago 1 ".print_r($database->error()[1],true);
+                }
             }
 
         }
