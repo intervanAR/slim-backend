@@ -1140,6 +1140,8 @@ $app->Get('/servicios/reporte_factura', function (Request $request, Response $re
 	else
 		$myresponse->write(base64_encode($lineas));
 	
+	unlink($archivo);
+	
     return $myresponse;
 });
 
