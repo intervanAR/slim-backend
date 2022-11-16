@@ -251,7 +251,7 @@ Listado de funciones y parámetros de la interfase servicios_backend
 Los datos numéricos tienen el formato  nnnnn.dd , sin separador de miles y el . como separador decimal
 Las  fechas tienen el formato YYYY-MM-DD
 
-####get_cuentas( $parametros ) 
+**get_cuentas( $parametros ) **
 
 servicios/cuentas_x_usuario
 Servicio que se invoca para tratar de asociar por primera vez o cuentas nuevas. 
@@ -274,7 +274,7 @@ retorna: Arreglo de cuentas que se pueden asociar automaticamente  
     ]
 
 
-####get_cuentas_x_objetos($parametros);
+**get_cuentas_x_objetos($parametros);**
 
 servicios/cuentas_x_objetos
 
@@ -306,7 +306,7 @@ Retorno  [  0: [ alias_cuenta": "",   El alias enviada en el parametro
           ...] 
 
  
-####consulta_deuda($parametros);
+**consulta_deuda($parametros);**
 
 servicios/consulta_deuda Consulta la deuda separada en deuda o proximos vencimientos, de las cuentas pasadas como argumentos.
 
@@ -344,12 +344,12 @@ Retorna:[ "deuda":[  [          "id_cuenta":"1748",               
                   "deu_recargo":"972.18",          importe de intereses. El capital + recaro es el total de lo que se debe a hoy            
                   "id_factura":""],                        identificador del comprobante original o de liquidación           ....         ], 
                "prox":[...]]
-*NOTA, si los comprobantes se duplican entre las cuentas, construir un comprobante que sea la concatenación unica de la cuenta y el comprobante.
+**NOTA, si los comprobantes se duplican entre las cuentas, construir un comprobante que sea la concatenación unica de la cuenta y el comprobante.**
 
 
 
 
-####resumen_pago($id_comprobantes, $fecha_actualizacion);
+**resumen_pago($id_comprobantes, $fecha_actualizacion);**
 servicios/resumen_pago Este servicio se encarga de realizar de calcular los comprobantes de pago de una o varias cuentas.
 parámetros$id_comprobantes : [ [ "id":"1282210" ] , identificador único de la deuda, corresponde con el campo 
                         "deu_id" de consulta de deuda.                                    
@@ -371,7 +371,7 @@ Respuesta[  "rta": "OK",         campo con ok o algún mensaje de error 
                     "max_fecha_vto":"2022-11-16"       Fecha de vto de todos los comprobantes ( tomar el menor de todos) ]
 
 
-####crear_operacion_pago($parametros);
+**crear_operacion_pago($parametros);**
 /servicios/crear_operacion_pago
 Este servicio se utiliza para registrar los cobros de los comprobantes generados con el servicio anterior. El servicio debería registrar un cobro por cada comprobante que se paga ( ej se pueden hacer un pago con tarjeta de varias cuentas)
 
@@ -404,14 +404,14 @@ Respuesta[  "rta": "OK",     OK o mensaje de error   
              ]    
         ]
 
-####confirmar_operacion_pago($parametros);
+**confirmar_operacion_pago($parametros);**
 en estos casos debe retornar siempre 
 Respuesta ["rta":"OK"]
 
-####anular_operacion_pago($parametros)en estos casos debe retornar siempre 
+**anular_operacion_pago($parametros)en estos casos debe retornar siempre **
 Respuesta ["rta":"OK"]
 
-####get_facturas($parametros);
+**get_facturas($parametros);**
 /servicios/consulta_facturas
 Este servicio retorna el listado de comprobantes originales/de liquidación que se podrian pagar. Se utiliza en muchos casos para pago anual o pago de saldo anual
 $parametros:[ "tipo" : "facturas" ,  puede ser facturas , pago_anual,todo                       
@@ -468,7 +468,7 @@ Retorna[   [  "nro_factura":"387088",  Nro de factura a mostrar     
           [ ... ]
         ]
 
-####get_reporte_factura($parametros)
+**get_reporte_factura($parametros)**
 
 $Parametros:
    ["id_comprobante":"1282286"]  Identificador del comprobante retornado del servicio get_facturas
