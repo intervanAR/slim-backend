@@ -245,3 +245,233 @@ En el archivo instalacion\settings.php establecer en la sección sistema el nomb
 				"sistema" => "NUEVO_BACKEND"
 ```
 
+### Funciones a implementar en un conector nuevo
+
+Listado de funciones y parámetros de la interfase servicios_backend
+Los datos numéricos tienen el formato  nnnnn.dd , sin separador de miles y el . como separador decimal
+Las  fechas tienen el formato YYYY-MM-DD
+
+####get_cuentas( $parametros ) 
+
+servicios/cuentas_x_usuario
+Servicio que se invoca para tratar de asociar por primera vez o cuentas nuevas. 
+Acá se debe aplicar reglas de negocio si permite asociar cuentas por dni, por mail. el tipo y nro de documento es lo que carga el usuario en la OV y no está verificado.
+
+$parametros =  ["mail":"ddirazar@gmail.com" siempre se envía, cuando ingresa, se registra o se actualiza el perfil del usuario    
+                "tipo_documento":"1"    opcional, se manda cuando se actualiza en el perfil   
+                "nro_documento":"20000000"  opcional, se manda cuando se actualiza en el perfil  
+              ]
+
+retorna: Arreglo de cuentas que se pueden asociar automaticamente   
+    [         
+        ["tipo_objeto": "TCR1",    Es el tipo de cuenta      
+        "id_objeto": "1253",       Es el nro de cuenta
+       "id_cuenta": "1189"      "Es el identificador interno      
+         ],      
+        [  ...      ],     
+
+        ...   
+    ]
+
+
+####get_cuentas_x_objetos($parametros);
+
+servicios/cuentas_x_objetos
+
+Servicio que retorna los datos de las cuentas. se utiliza para desplegar las cuentas cuando en la OV se despliega la opción CUENTAS. La colección de cuentas que retorna este servicio será la que se utiliza para los demás servicios de deudas o facturas.
+
+$parametros[ 
+       ["tipo_objeto":"TCR1",    Tipo de cuenta    
+        "id_objeto":"1253",         Nro de cuenta    
+         "alias_cuenta": ""],         Alias asignada por el usuario en la Ov   
+        [ ...],   
+        ...
+    ]
+
+Retorno  [  0: [ alias_cuenta": "",   El alias enviada en el parametro
+                "id_cuenta": "1189",   identificadr de cuenta interno
+                "tipo_cuenta": "TCR1",   Tipo de cuenta
+                "nro_cuenta": "1253",   nro  de cuenta
+                "desc_tipo_cuenta": "Partida",     Descripción de tipo de cuenta
+                "descripcion": "Partida 1253 MESSI ALEJO",   Descripción de la cuenta
+                "responsable_pago": "MESSI ALEJO",    Responsable de pago
+                "id_persona": "852",         Identificador interno del responsable de pago
+                "enviar_mail": "N",          N:  Impresion en papel    S: Boleta sin Papel
+                 "pa_activo": "N",             Pago/debito automatico activo  
+               "pa_fecha_desde": "",       Fecha de inicio de pago/debito automatico 
+              "pa_fecha_hasta": "",       Fecha in de pago/debito automatico
+                "id_nro_cuenta": "1189"   Nro de cuenta si fuera distinta
+                ],  
+          1: [....],
+          ...] 
+
+ 
+####consulta_deuda($parametros);
+
+servicios/consulta_deuda Consulta la deuda separada en deuda o proximos vencimientos, de las cuentas pasadas como argumentos.
+
+$parametros:    [  tipoDeuda":"todo",       "nro_documento":"20173258381",        "mail":"ddirazar@gmail.com",       "cuentas":[           0: [ "alias_cuenta": "",   El alias enviada en el parametro
+                "id_cuenta": "1189",   identificadr de cuenta interno
+                "tipo_cuenta": "TCR1",   Tipo de cuenta
+                "nro_cuenta": "1253",   nro  de cuenta
+                "desc_tipo_cuenta": "Partida",     Descripción de tipo de cuenta
+                "descripcion": "Partida 1253 MESSI ALEJO",   Descripción de la cuenta
+                "responsable_pago": "MESSI ALEJO",    Responsable de pago
+                "id_persona": "852",         Identificador interno del responsable de pago
+                "enviar_mail": "N",          N:  Impresion en papel    S: Boleta sin Papel
+                 "pa_activo": "N",             Pago/debito automatico activo  
+                "pa_fecha_desde": "",       Fecha de inicio de pago/debito automatico 
+                "pa_fecha_hasta": "",       Fecha in de pago/debito automatico
+                "id_nro_cuenta": "1189"   Nro de cuenta si fuera distinta
+               ],          1: [....],
+            ...        ]   ]
+
+Retorna:[ "deuda":[  [          "id_cuenta":"1748",                 identificador interno de la cuenta          
+                  "cont_id":"2037",                     identificador de contribiyente          
+                  "cont_desc1":"ARTIGAU NICOLAS RAUL",     descripcion de contribuyente          
+                  "cont_desc2":"CUIT-CUIL 20333877288",         descripcion 2 de contribuyente            
+                  "cue_id":"1748",                       identificador de la cuenta               
+                  "cue_desc1":"Partida 1831",    descripcion de la cuenta            
+                  "cue_desc2":"JULIO A. ROCA N\u00b0 176",      descripcion 2 de la cuenta         
+                  "imp_id":"1",                             impuesto/concepto         
+                  "imp_desc1":"SERVICIOS P\u00daBLICOS",     descripcion impuesto/conpceto           
+                  "per_id":"1#2019",                 identificador de periodo       
+                  "per_desc1":"Deuda 2019",    descripcion de periodo              
+                  "deu_id":"862081",                 identificador ÚNICO de la deuda  * ver nota           
+                  "deu_desc1":"0\/3 V:26\/04\/19",        descripcion de la deuda           
+                  "deu_vto":"2019-04-26 00:00:00",      vto de la deuda           
+                  "deu_capital":"1250",               capital original de la deuda             
+                  "deu_recargo":"972.18",          importe de intereses. El capital + recaro es el total de lo que se debe a hoy            
+                  "id_factura":""],                        identificador del comprobante original o de liquidación           ....         ], 
+               "prox":[...]]
+*NOTA, si los comprobantes se duplican entre las cuentas, construir un comprobante que sea la concatenación unica de la cuenta y el comprobante.
+
+
+
+
+####resumen_pago($id_comprobantes, $fecha_actualizacion);
+servicios/resumen_pago Este servicio se encarga de realizar de calcular los comprobantes de pago de una o varias cuentas.
+parámetros$id_comprobantes : [ [ "id":"1282210" ] , identificador único de la deuda, corresponde con el campo 
+                        "deu_id" de consulta de deuda.                                    
+                        ["id":"1282206"] , ...                                ],
+                        $fecha_actualizacion: Fecha que el usuario quisiera abonar en formato YYYY-MM-DD
+
+
+Respuesta[  "rta": "OK",         campo con ok o algún mensaje de error  
+             "comprobantesFact": "#1285583#1285584#1285585#", Cadena de comprobantes generados separados por ##        "comprobantes": [         
+                    [ "id_comprobante": "1285583",             identificador de comprobante de pago generado 
+                       "total": "2139.27",                                Total de ese comprobante
+                       "fecha_vto": "2022-11-16 00:00:00",   Fecha de vto de ese comprobante
+                       "cod_concepto": "8",                           codigo de concepto
+                       "desc_concepto": "prueba 2",             Descripcion de concepto
+                       "descripcion": "F.Nro:512165 Partida 1253: 1-2-3\/Conv.3176 " descripción del comprobante. va al gateway de pago como detalle para que se muestre en el cupón de pago                   
+                      ],                                                 
+                    [ "id_comprobante": "1285584",                                                         "total": "1017.33",                                                          "fecha_vto": "2022-11-16 00:00:00",                                                           "cod_concepto": "1",                                                           "desc_concepto": "SERVICIOS P\u00daBLICOS",                                                            "descripcion": "F.Nro:512166 Partida 1253: 6\/2019 1\/2020 "       ]                                      
+                    [...]      ,"total":4750.65,   importe total de todos los comprobantes      
+                    "max_fecha_vto":"2022-11-16"       Fecha de vto de todos los comprobantes ( tomar el menor de todos) ]
+
+
+####crear_operacion_pago($parametros);
+/servicios/crear_operacion_pago
+Este servicio se utiliza para registrar los cobros de los comprobantes generados con el servicio anterior. El servicio debería registrar un cobro por cada comprobante que se paga ( ej se pueden hacer un pago con tarjeta de varias cuentas)
+
+$parametros: [ "medio_pago":"1", Siempre envía 1 ya que hay un gateway de pago genérico.
+              "comprobantes":[ ["id_operacion":"13208",  operacin de la OV, en la que se pagó este comprobante
+                                  "cupon_pago":"1285583", se corresponde con el comprobante
+                                  "id_comprobante":"1285583",     Los restantes campos son los devueltos en el servicio anterior                                                      "importe":"2139.27",  "fecha_vto":"2022-11-16 00:00:00",
+                                  "cod_concepto":"8",                                                       
+                                  "desc_concepto":"prueba 2",                                                      "descripcion":"F.Nro:512165 Partida 1253: 1-2-3\/Conv.3176 "
+                                  ],                                                       
+                                ["id_operacion":"13208",                                                         
+                                "id_comprobante":"1285584",
+                                "cupon_pago":"1285584",
+                                "importe":"1017.33", 
+                                "fecha_vto":"2022-11-16 00:00:00",
+                                cod_concepto":"1","desc_concepto":"SERVICIOS P\u00daBLICOS",                           "descripcion":"F.Nro:512166 Partida 1253: 6\/2019 1\/2020 "
+                                ]                                                         
+                                [...]               
+                                ,"fecha_pago":"2022-11-16",  FEcha en la que efectivamente se confirmó el pago( ej en DEBIN/EFECTIVO )               
+                                "version":2,   Valor fijo 2                
+                                "gp_notif":[...] Depende del gateway de pago. Es un arreglo.  ]  
+
+Respuesta[  "rta": "OK",     OK o mensaje de error   
+             "id_operacion_pago": [         listado de cobros generados en el sistema               
+              [ "nro_cobro": "27847",         cobro generado en el sistema                 
+                "cupon_pago": "1285583",             es el cupon enviado                  
+                "resultado": "OK"                es el resultado de la oepración de registración de ese cobro,
+                ],                 
+              [...]      
+             ]    
+        ]
+
+####confirmar_operacion_pago($parametros);
+en estos casos debe retornar siempre 
+Respuesta ["rta":"OK"]
+
+####anular_operacion_pago($parametros)en estos casos debe retornar siempre 
+Respuesta ["rta":"OK"]
+
+####get_facturas($parametros);
+/servicios/consulta_facturas
+Este servicio retorna el listado de comprobantes originales/de liquidación que se podrian pagar. Se utiliza en muchos casos para pago anual o pago de saldo anual
+$parametros:[ "tipo" : "facturas" ,  puede ser facturas , pago_anual,todo                       
+              "tipo_documento": Tipo de documento del usuario"                       
+              "nro_documento": Nro de documento del usuario",                       
+              "mail": Mail del usuario,                                  
+              "cuentas":[  
+                  0: [ "alias_cuenta": "",   El alias enviada en el parametro
+                        "id_cuenta": "1189",   identificadr de cuenta interno
+                        "tipo_cuenta": "TCR1",   Tipo de cuenta
+                         "nro_cuenta": "1253",   nro  de cuenta
+                                 "desc_tipo_cuenta": "Partida",     Descripción de tipo de cuenta
+                                 "descripcion": "Partida 1253 MESSI ALEJO",   Descripción de la cuenta
+                                 "responsable_pago": "MESSI ALEJO",    Responsable de pago
+                                 "id_persona": "852",         Identificador interno del responsable de pago
+                                 "enviar_mail": "N",          N:  Impresion en papel    S: Boleta sin Papel
+                                 "pa_activo": "N",             Pago/debito automatico activo  
+                                 "pa_fecha_desde": "",       Fecha de inicio de pago/debito automatico 
+                                 "pa_fecha_hasta": "",       Fecha in de pago/debito automatico
+                                 "id_nro_cuenta": "1189"   Nro de cuenta si fuera distinta
+                              ], 
+                       1: [....],
+                        ...                  
+                ]         
+            ]
+Retorna[   [  "nro_factura":"387088",  Nro de factura a mostrar     
+                "id_comprobante":"850986",     Comprobante que se enviará si lo selecciona y da pagar o imprimir
+                "descripcion_factura":"1\/2018",        Descripción de la factura      
+                "fecha_1vto":"2018-03-01 00:00:00",   Vto de la factura      
+                "importe_1vto":"272.78",                     importe 1er vto      
+                "importe_2vto":"288.02",                     Importe 2do vto      
+                "tipo":"1",        Tipo             
+                "desc_tipo":"Tasa\/Impuesto",  Descripción del Tipo      
+                "desc_estado":"Pagada",  Descripción del Estad      
+                "estado":"1",   Codigo  del estado      
+                "anio":"2018",  Año al que corresponde la factura ( Para usar en filtro)       
+                "impuesto":"SERVICIOS P\u00daBLICOS",   impuesto de la factura        
+                "pagar":"N",   Indica si permite pagar o no ( Ej. vencidas, a veces no se pueden pagar)       
+                "tipo_fac":"facturas",  El tipo que se indicó en el requerimiento
+                "cuenta":["alias_cuenta":"",               Datos de la cuenta ( que viajó en el requerimiento )                "id_cuenta":"1189",                
+                            "tipo_cuenta":"TCR1",               
+                            "nro_cuenta":"1253",                
+                            "desc_tipo_cuenta":"Partida",                
+                            "descripcion":"Partida 1253  XXXXX",                
+                             "responsable_pago":"MESSI  ALEJO",                
+                            "id_persona":"852",                
+                            "enviar_mail":"N",                
+                            "pa_activo":"N",               
+                            "pa_fecha_desde":"",               
+                            "pa_fecha_hasta":"",               
+                            "id_nro_cuenta":"1189"            
+                             ]      
+            ],   
+          [ ... ]
+        ]
+
+####get_reporte_factura($parametros)
+
+$Parametros:
+   ["id_comprobante":"1282286"]  Identificador del comprobante retornado del servicio get_facturas
+
+Retorna: nombre_archivo  :  nombre de un archivo temporal pdf que se enviará a la OV.
+                            El archivo a continuación se elimina
