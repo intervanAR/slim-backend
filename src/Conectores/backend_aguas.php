@@ -1638,8 +1638,18 @@ pkg_convenios.datos_cuota(
         $logger->debug( "obtener_parametros".json_encode($parametro));
 
         $condicion["ID_EMPRESA"] = 1;
-        $condicion["ID_SUCURSAL"] = 0;
-        $condicion["CAMPO"] = ["RECAUDADOR_WEB","WEB_URL_DESCARGA_FACTURA","FACTURA_FRENTE","FACTURA_REVERSO"];
+        //$condicion["ID_SUCURSAL"] = 0;
+        $condicion["CAMPO"] = ["RECAUDADOR_WEB","WEB_URL_DESCARGA_FACTURA","FACTURA_FRENTE","FACTURA_REVERSO","WEB_GRUPO_NOTIFICACIONES",
+"WEB_OV_APP",
+"WEB_OV_CONTACTO",
+"WEB_HASH_KEY",
+"WEB_URL_DESCARGA_FACTURA",
+"WEB_URL_NOTIFICAR",
+"RECAUDADOR_WEB",
+"WEB_OV_URL_BOTON_PAGO",
+"WEB_LOGO",
+"WEB_OV_MENSAJE",
+"WEB_URL_ACTUALIZAR_SUSCRIPTORES"];
 
         if (strpos($parametro["parametro"],"%")!==false) { 
             $condicion["CAMPO[~]"] = $parametro["parametro"];
@@ -1673,7 +1683,7 @@ pkg_convenios.datos_cuota(
 
        
         $condicion["ID_EMPRESA"]=1;
-        $condicion["ID_SUCURSAL"]=0;
+     //   $condicion["ID_SUCURSAL"]=0;
         $parametro=$param["parametro"]["codigo"];
 
         if(isset($param["parametro"]["codigo"])) {

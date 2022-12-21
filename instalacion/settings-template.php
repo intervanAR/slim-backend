@@ -6,7 +6,8 @@
 				'displayErrorDetails' =>true, // En producción poner en FALSE				
 				'logger' =>[  // Logger, nombre de log y directorio donde lo deja
 					'name' => 'backend',
-					'path' => '../instalacion/logs/web_services.log'
+					'path' => '../instalacion/logs/web_services.log',
+					'max_files'=>31
 				],
 				// Conexión a la base de datos, motor (Usado por medoo) 
 				'db' => ["database_type" => "oracle",
