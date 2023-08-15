@@ -874,6 +874,7 @@ pkg_convenios.datos_cuota(
                    "IMPORTE_1VTO",
                    "IVA_1VTO",
                    "LEY25413",
+                   "DESCRIPCION"=>\Medoo\Medoo::raw('pkg_facturacion.descripcion_factura(FACTURAS.ID_EMPRESA,FACTURAS.ID_SUCURSAL,FACTURAS.COD_IVA, FACTURAS.NRO_FACTURA )')
                     ];
         $facturas = $qry_facturas->selectj($join,$campos,[]);
         if( $qry_facturas->error() ){
@@ -888,7 +889,7 @@ pkg_convenios.datos_cuota(
             $comprobantes[]=["id_comprobante"=> $factura["ID_EMPRESA"]."-".$factura["ID_SUCURSAL"]."-".$factura["NRO_FACTURA"]."-".$factura["COD_IVA"],
                             "total"=>$factura["IMPORTE_1VTO"]+$factura["IVA_1VTO"]+$factura["LEY25413"],
                             "fecha_vto"=>$factura["FECHA_1VTO"],
-                            "descripcion"=>"Factura ".$factura["ID_EMPRESA"]."-".$factura["COD_IVA"]."-".$factura["NRO_FACTURA"]
+                            "descripcion"=>"Factura ".$factura["ID_EMPRESA"]."-".$factura["COD_IVA"]."-".$factura["NRO_FACTURA"] ." ". $factura["DESCRIPCION"]
                         ];
             $total = $total+$factura["IMPORTE_1VTO"]+$factura["IVA_1VTO"]+$factura["LEY25413"];         
         }
