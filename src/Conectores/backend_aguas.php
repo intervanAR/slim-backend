@@ -950,9 +950,54 @@ pkg_convenios.datos_cuota(
             $cuentas= $filtro["cuentas"];
         }
         $facturas=[];
+
+        $moratoria =  (isset($filtro["tipo"])  && $filtro["tipo"]==="planadelanto" ) ? true : false;
         foreach ($cuentas as $key_cta => $value_cta) {
-            list($id_empresa,$id_sucursal,$cuenta)= preg_split("/-/",$value_cta["id_cuenta"]);      
-            $sql = "SELECT   a.id_sucursal || '-' || a.cod_iva || '-' || a.nro_factura \"nro_factura\",
+            list($id_empresa,$id_sucursal,$cuenta)= preg_split("/-/",$value_cta["id_cuenta"]);  
+
+                
+            $sql = $moratoria ? 
+                    //
+                    // moratoria
+                    //
+                    "SELECT   a.id_sucursal || '-' || a.cod_iva || '-' || a.nro_factura \"nro_factura\",
+                             a.id_empresa || '-' || a.id_sucursal|| '-' || a.nro_factura ||'-'||a.cod_iva||'-REFACTURA' \"id_comprobante\",
+                             'Servicio' \"descripcion_factura\",
+                             CASE
+                                WHEN fecha_1vto >= TRUNC (SYSDATE)
+                                   THEN fecha_1vto
+                                WHEN fecha_2vto >= TRUNC (SYSDATE)
+                                   THEN fecha_2vto
+                                ELSE fecha_1vto
+                             END \"fecha_1vto\",
+                             CASE
+                                WHEN fecha_1vto >= TRUNC (SYSDATE)
+                                   THEN importe_1vto + ley25413 + iva_1vto
+                                WHEN fecha_2vto >= TRUNC (SYSDATE)
+                                   THEN importe_2vto + ley25413_2 + iva_2vto
+                                ELSE importe_1vto + ley25413 + iva_1vto
+                             END \"importe_1vto\",
+                             a.tipo_servicio \"tipo\", 
+                             b.descripcion \"desc_tipo_servicio\",
+                             b.descripcion \"impuesto\",
+                             to_char(fecha_1vto,'yyyy') \"anio\",
+                             'Impaga' \"desc_estado\",
+                             'S' \"pagar\"
+                        FROM facturas a, tipos_servicios b, CUENTAS_REFACTURADAS d
+                       WHERE a.tipo_servicio = b.tipo_servicio
+                         and a.anulada='N'
+                         and a.cuenta=d.nro_cuenta
+                         and a.id_Sucursal=d.id_sucursal
+                         and a.NRO_FACTURA=d.nro_factura
+                         AND a.id_empresa=".$id_empresa."
+                         AND a.id_sucursal=".$id_sucursal."
+                         AND a.cuenta=".$cuenta."
+                    ORDER BY fecha_1vto"
+                   :
+                    //    
+                    // NO ES MORATORIA
+                    //
+                    "SELECT   a.id_sucursal || '-' || a.cod_iva || '-' || a.nro_factura \"nro_factura\",
                              a.id_empresa || '-' || a.id_sucursal|| '-' || a.nro_factura ||'-'||a.cod_iva \"id_comprobante\",
                              'Servicio' \"descripcion_factura\",
                              CASE
@@ -1006,6 +1051,8 @@ pkg_convenios.datos_cuota(
                          AND a.id_sucursal=".$id_sucursal."
                          AND a.cuenta=".$cuenta."
                     ORDER BY fecha_1vto"
+
+
                     ;
 
             $sth = $database->pdo->prepare($sql);

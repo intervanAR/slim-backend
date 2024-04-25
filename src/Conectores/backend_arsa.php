@@ -703,6 +703,55 @@ pkg_convenios.datos_cuota(
         $comprobantes=[];
         foreach ($id_comprobantes as $key => $value){
             $id= preg_split("/-/",$value["id"]);
+
+
+            if ( isset($id[4]) && $id[4]==="REFACTURA"){
+                $id_empresa=$id[0];
+                $id_sucursal=$id[1];
+                $nro_factura=$id[2];
+                $tipo_iva=$id[3];
+
+                $sql = "SELECT TRUNC (fecha_1vto) fecha_1vto,
+                            importe_1vto + iva_1vto + ley25413 importe,
+                            NRO_FACTURA,pagada
+                          FROM facturas
+                         WHERE id_empresa = ".$id_empresa."
+                           AND id_sucursal = ".$id_sucursal."
+                           AND cod_iva = '".$tipo_iva."'
+                           AND nro_factura = ".$nro_factura;
+
+                $sth = $database->pdo->prepare($sql);
+
+                if( !$sth->execute()  ){
+                    $logger->debug( "backend_aguas:resumen_pago 0.1 error:".$sql." ".print_r($sth->errorInfo(),true));
+                    return "backend_aguas:resumen_pago 0.2 error".print_r($sth->errorInfo(),true);
+                }
+
+                $dts = $sth->fetchAll();
+                $cupones = isset($dts[0]) ? $dts[0] : null;
+
+
+                if( !isset($cupones["IMPORTE"]) || !$cupones["IMPORTE"] ) {
+                    $logger->debug( "backend_aguas:resumen_pago 0.3 error no existe importe de cupon : ".$value["id"]) ;
+                    return array("rta" => "Error", 
+              "error" => "backend_aguas:resumen_pago 0.4 error no existe importe de cupon:".$value["id"] );
+                }
+
+                if( isset($cupones) && isset($cupones["PAGADA"])  &&  $cupones["PAGADA"]==="S") {
+                    $logger->debug( "backend_aguas:resumen_pago el cupón ya está pago : ".$value["id"]) ;
+                    return array("rta" => "YAPAGADO", "error" => "El cupón o la deuda ya está pago" );
+                }
+
+                if( $hoy<=$cupones["FECHA_1VTO"] ){
+                    $comprobantes[]=["id_comprobante"=> $id_empresa."-".$id_sucursal."-".$nro_factura."-".$tipo_iva,
+                                    "total"=>$cupones["IMPORTE"],
+                                    "fecha_vto"=>$cupones["FECHA_1VTO"],
+                                    "descripcion"=>"Factura ".$id_empresa."-".$tipo_iva."-".$cupones["NRO_FACTURA"]
+                                ];
+                    $total = $total+$cupones["IMPORTE"];                     
+                }   
+                continue;                  
+            } 
             $id_empresa=$id[0];
             $id_sucursal=$id[1];
             $cuenta=$id[2];
