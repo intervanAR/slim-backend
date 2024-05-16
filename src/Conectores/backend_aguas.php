@@ -986,6 +986,7 @@ pkg_convenios.datos_cuota(
                         FROM facturas a, tipos_servicios b, CUENTAS_REFACTURADAS d
                        WHERE a.tipo_servicio = b.tipo_servicio
                          and a.anulada='N'
+                         and a.pagada='N'
                          and a.cuenta=d.nro_cuenta
                          and a.id_Sucursal=d.id_sucursal
                          and a.NRO_FACTURA=d.nro_factura

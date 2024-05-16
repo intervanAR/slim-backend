@@ -540,6 +540,7 @@ $app->post('/servicios/resumen_pago', function (Request $request, Response $resp
 			else
 				$fecha_actualizacion= NULL;		
 
+
 			$datos = $this->sistema->resumen_pago($id_comprobantes, $fecha_actualizacion);
 
 
@@ -549,7 +550,7 @@ $app->post('/servicios/resumen_pago', function (Request $request, Response $resp
 			$myresponse = $response->withAddedHeader('Content-Type', 'application/json')->
 									withAddedHeader('Cantidad-Registros', "$cantidad");			
 
-			$myresponse->write(json_encode($datos));
+			$myresponse->write(json_encode(array_a_utf8($datos)));
 		    return $myresponse;
 			}
 	);
