@@ -990,6 +990,7 @@ pkg_convenios.datos_cuota(
                          and a.cuenta=d.nro_cuenta
                          and a.id_Sucursal=d.id_sucursal
                          and a.NRO_FACTURA=d.nro_factura
+                         and a.fecha_2vto>=trunc(sysdate)
                          AND a.id_empresa=".$id_empresa."
                          AND a.id_sucursal=".$id_sucursal."
                          AND a.cuenta=".$cuenta."
