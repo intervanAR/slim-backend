@@ -1072,7 +1072,7 @@ pkg_convenios.datos_cuota(
                   ,Pkg_Recaudadores.cod_externo(fac.id_empresa
                                                         ,Pkg_Varios.ID_REC_RED_LINK(fac.id_empresa))
                               || LPAD(fac.clave_link,13,'0') clave_link
-                  ,fac.clave_banelco,
+                  ,lpad(fac.clave_banelco,13,'0') clave_banelco,
   (select max(activo)
     from usuarios_recaudadores ur
     ,recaudadores rec,
